@@ -3,6 +3,7 @@ import logging
 from .config import Config
 from .bot import TelegramBot
 from .llm_client import LLMClient
+from .conversation import ConversationManager
 from .handlers import router
 
 
@@ -22,8 +23,9 @@ async def main():
     logger = logging.getLogger(__name__)
     logger.info("Starting systech-aidd bot...")
     
-    # Создание LLM клиента
+    # Создание компонентов
     llm_client = LLMClient(config)
+    conversation_manager = ConversationManager(max_history_messages=config.max_history_messages)
     
     # Создание бота
     bot = TelegramBot(config)
@@ -36,6 +38,7 @@ async def main():
         await bot.dp.start_polling(
             bot.bot,
             llm_client=llm_client,
+            conversation_manager=conversation_manager,
             system_prompt=config.system_prompt,
         )
     except KeyboardInterrupt:
