@@ -10,8 +10,9 @@
 - **make** - автоматизация задач сборки и запуска
 
 ### Дополнительные библиотеки
-- **pydantic** - валидация конфигурации
-- **python-dotenv** - работа с переменными окружения
+- **pydantic** - валидация данных
+- **pydantic-settings** - загрузка и валидация конфигурации из переменных окружения
+- **python-dotenv** - работа с .env файлами
 - **dataclasses** (стандартная библиотека Python) - классы данных
 - **logging** (стандартная библиотека Python) - логирование
 
@@ -54,7 +55,8 @@ systech-aidd-my/
 ├── .env.example           # Пример конфигурации
 ├── .gitignore
 ├── Makefile              # Команды для сборки и запуска
-├── pyproject.toml        # Конфигурация проекта для uv
+├── pyproject.toml        # Конфигурация проекта и зависимостей
+├── uv.lock               # Lockfile с точными версиями зависимостей
 └── README.md
 ```
 
@@ -66,6 +68,30 @@ systech-aidd-my/
 - **conversation.py** - хранение истории диалога в памяти
 - **models.py** - классы данных (ConversationKey, Message)
 - **config.py** - загрузка и валидация конфигурации
+- **pyproject.toml** - метаданные проекта и список зависимостей
+- **uv.lock** - lockfile с точными версиями всех зависимостей (создаётся автоматически)
+
+### Пример pyproject.toml
+
+```toml
+[project]
+name = "systech-aidd-my"
+version = "0.1.0"
+description = "LLM-ассистент в виде Telegram-бота"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.0.0",
+    "openai>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+```
 
 ## 4. Архитектура проекта
 
@@ -217,7 +243,7 @@ LOG_LEVEL=INFO
 ```
 
 ### Валидация конфигурации
-- Загрузка через `pydantic.BaseSettings` (или `pydantic_settings`)
+- Загрузка через `pydantic_settings.BaseSettings` (Pydantic v2)
 - Валидация при старте приложения (fail-fast принцип)
 - Если обязательные переменные не заданы → приложение не запускается с понятным сообщением об ошибке
 
@@ -277,6 +303,34 @@ logger.debug(f"User message: {message.text}")
 logger.debug(f"LLM response: {response}")
 logger.error(f"LLM API error: {error}")
 ```
+
+## 10. Локальная разработка
+
+### Требования к окружению
+- **Python 3.11+** - установленный интерпретатор Python
+- **uv** - менеджер пакетов и виртуальных окружений
+- **make** - для автоматизации команд (опционально)
+- **Telegram Bot Token** - получить через [@BotFather](https://t.me/botfather)
+- **OpenRouter API Key** - получить на [openrouter.ai](https://openrouter.ai)
+
+### Установка и запуск
+1. Создать виртуальное окружение: `uv venv`
+2. Установить зависимости: `uv pip install -e .` или `make install`
+3. Настроить `.env` файл (обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`)
+4. Запустить: `python src/main.py` или `make run`
+
+### Команды Makefile
+- `make install` - установить зависимости
+- `make run` - запустить бота
+- `make dev` - запустить в режиме разработки (LOG_LEVEL=DEBUG)
+- `make lint` - проверить код линтером
+- `make format` - форматировать код
+- `make clean` - очистить временные файлы
+
+### Режим отладки
+Для детального логирования установить `LOG_LEVEL=DEBUG` в `.env` или через переменную окружения.
+
+⚠️ **Важно:** DEBUG режим логирует содержимое сообщений - не используйте в продакшене!
 
 ---
 
