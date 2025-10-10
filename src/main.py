@@ -2,6 +2,7 @@ import asyncio
 import logging
 from .config import Config
 from .bot import TelegramBot
+from .llm_client import LLMClient
 from .handlers import router
 
 
@@ -21,6 +22,9 @@ async def main():
     logger = logging.getLogger(__name__)
     logger.info("Starting systech-aidd bot...")
     
+    # Создание LLM клиента
+    llm_client = LLMClient(config)
+    
     # Создание бота
     bot = TelegramBot(config)
     
@@ -28,8 +32,12 @@ async def main():
     bot.dp.include_router(router)
     
     try:
-        # Запуск polling
-        await bot.start_polling()
+        # Запуск polling с dependency injection
+        await bot.dp.start_polling(
+            bot.bot,
+            llm_client=llm_client,
+            system_prompt=config.system_prompt,
+        )
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
     finally:

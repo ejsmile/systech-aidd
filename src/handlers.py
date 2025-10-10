@@ -2,6 +2,8 @@ import logging
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from .llm_client import LLMClient
+from .models import Message as LLMMessage
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -28,8 +30,33 @@ async def cmd_help(message: Message):
     )
 
 
+@router.message(Command("clear"))
+async def cmd_clear(message: Message):
+    logger.info(f"User {message.from_user.id} cleared conversation")
+    await message.answer("История диалога очищена")
+
+
 @router.message()
-async def echo_message(message: Message):
+async def handle_message(message: Message, llm_client: LLMClient, system_prompt: str):
+    """Обработка текстовых сообщений через LLM"""
     logger.debug(f"User {message.from_user.id} sent: {message.text}")
-    await message.answer(message.text)
+    
+    try:
+        # Формирование запроса к LLM
+        messages = [
+            LLMMessage(role="system", content=system_prompt),
+            LLMMessage(role="user", content=message.text),
+        ]
+        
+        # Получение ответа от LLM
+        response = await llm_client.get_response(messages)
+        
+        # Отправка ответа пользователю
+        await message.answer(response)
+        
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        await message.answer(
+            "Произошла ошибка при обработке запроса. Попробуйте позже."
+        )
 
