@@ -1,5 +1,5 @@
 import logging
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 from .llm_client import LLMClient
@@ -42,7 +42,7 @@ async def cmd_clear(message: Message, conversation_manager: ConversationManager)
     await message.answer("История диалога очищена")
 
 
-@router.message()
+@router.message(F.text)
 async def handle_message(
     message: Message,
     llm_client: LLMClient,
@@ -81,4 +81,11 @@ async def handle_message(
         await message.answer(
             "Произошла ошибка при обработке запроса. Попробуйте позже."
         )
+
+
+@router.message()
+async def handle_unsupported(message: Message):
+    """Обработка неподдерживаемых типов сообщений"""
+    logger.warning(f"User {message.from_user.id} sent unsupported message type")
+    # Тихо игнорируем - не отправляем ответ пользователю
 
