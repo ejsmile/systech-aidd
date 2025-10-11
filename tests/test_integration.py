@@ -1,10 +1,11 @@
 """Интеграционные тесты для полного цикла работы"""
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.config import Config
+from src.config import Config, load_system_prompt_with_fallback
 from src.conversation import ConversationManager
 from src.llm_client import LLMClient
 from src.models import ChatMessage, ConversationKey
@@ -127,3 +128,25 @@ def test_history_limit_integration(config: Config, manager: ConversationManager)
     # Check that old messages were removed
     assert "Question 0" not in str([msg.content for msg in history])
     assert "Question 4" in str([msg.content for msg in history])
+
+
+def test_load_system_prompt_on_startup(tmp_path: Path) -> None:
+    """Тест загрузки системного промпта из файла при старте бота"""
+    # Создать временный файл промпта
+    prompt_file = tmp_path / "system.txt"
+    prompt_file.write_text("Ты специализированный ассистент.", encoding="utf-8")
+
+    # Загрузить промпт
+    prompt = load_system_prompt_with_fallback(str(prompt_file))
+
+    # Проверить
+    assert prompt == "Ты специализированный ассистент."
+
+
+def test_load_system_prompt_fallback() -> None:
+    """Тест fallback на дефолтный промпт при отсутствии файла"""
+    # Попытаться загрузить несуществующий файл
+    prompt = load_system_prompt_with_fallback("nonexistent_file.txt")
+
+    # Проверить дефолтное значение
+    assert prompt == "Ты полезный ассистент."

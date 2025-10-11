@@ -51,11 +51,13 @@ systech-aidd-my/
 │   ├── __init__.py
 │   ├── main.py            # Точка входа в приложение
 │   ├── bot.py             # Класс Bot - инициализация aiogram
-│   ├── handlers.py        # Класс MessageHandler - обработка сообщений
+│   ├── handlers.py        # Класс MessageHandler - обработка сообщений и команд
 │   ├── llm_client.py      # Класс LLMClient - работа с OpenRouter
 │   ├── conversation.py    # Класс ConversationManager - управление историей
 │   ├── models.py          # Классы данных: ConversationKey, ChatMessage, Role
 │   └── config.py          # Класс Config - конфигурация
+├── prompts/               # Файлы системных промптов
+│   └── system.txt         # Системный промпт (роль ассистента)
 ├── tests/                 # Автоматизированные тесты
 │   ├── __init__.py
 │   ├── conftest.py        # Общие fixtures
@@ -78,13 +80,16 @@ systech-aidd-my/
 ### Описание ключевых файлов
 
 **Исходный код:**
-- **main.py** - запуск бота, связывание компонентов
+- **main.py** - запуск бота, связывание компонентов, загрузка системного промпта (с fallback на дефолт)
 - **bot.py** - создание и настройка aiogram Bot и Dispatcher
-- **handlers.py** - обработка входящих сообщений из Telegram
+- **handlers.py** - обработка входящих сообщений и команд из Telegram (`/start`, `/help`, `/clear`, `/role`)
 - **llm_client.py** - отправка запросов к LLM через OpenRouter
 - **conversation.py** - хранение истории диалога в памяти
 - **models.py** - классы данных (ConversationKey, ChatMessage, Role)
 - **config.py** - загрузка и валидация конфигурации
+
+**Промпты:**
+- **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)
 
 **Тестирование:**
 - **conftest.py** - общие fixtures для переиспользования
@@ -167,19 +172,20 @@ Telegram User
 ```
 
 ### Поток обработки сообщения
-1. **Пользователь** отправляет сообщение в Telegram
-2. **Bot** (aiogram) получает сообщение через polling
-3. **MessageHandler** обрабатывает входящее сообщение
-4. **ConversationManager** добавляет сообщение в историю диалога
-5. **LLMClient** отправляет историю + системный промпт в OpenRouter
-6. **OpenRouter** возвращает ответ от LLM
-7. **ConversationManager** добавляет ответ в историю
-8. **MessageHandler** отправляет ответ пользователю через Bot
+1. **При запуске** бот загружает системный промпт из файла `prompts/system.txt` (или использует дефолт, если файл не найден)
+2. **Пользователь** отправляет сообщение в Telegram
+3. **Bot** (aiogram) получает сообщение через polling
+4. **MessageHandler** обрабатывает входящее сообщение
+5. **ConversationManager** добавляет сообщение в историю диалога
+6. **LLMClient** отправляет историю + системный промпт в OpenRouter
+7. **OpenRouter** возвращает ответ от LLM
+8. **ConversationManager** добавляет ответ в историю
+9. **MessageHandler** отправляет ответ пользователю через Bot
 
 ### Ответственности классов
-- **Config** - хранит конфигурацию (токены, URL, параметры LLM)
+- **Config** - хранит конфигурацию (токены, URL, параметры LLM, путь к файлу промпта)
 - **Bot** - обертка над aiogram Bot + Dispatcher, регистрация handlers
-- **MessageHandler** - обработка команд и текстовых сообщений
+- **MessageHandler** - обработка команд (`/start`, `/help`, `/clear`, `/role`) и текстовых сообщений
 - **ConversationManager** - управление историей диалогов (dict: ConversationKey → list[ChatMessage])
 - **LLMClient** - асинхронные запросы к OpenRouter API
 - **ConversationKey** - immutable ключ для идентификации диалога (chat_id + user_id)
@@ -193,8 +199,9 @@ Telegram User
 telegram_token: str          # Токен Telegram бота
 openrouter_api_key: str      # API ключ OpenRouter
 openrouter_base_url: str     # URL OpenRouter (по умолчанию: "https://openrouter.ai/api/v1")
-model_name: str              # Название модели (например: "anthropic/claude-3.5-sonnet")
-system_prompt: str           # Системный промпт для роли бота
+model_name: str              # Название модели (например: "openai/gpt-oss-20b:free")
+system_prompt_file: str      # Путь к файлу с системным промптом (по умолчанию: "prompts/system.txt")
+system_prompt: str           # Системный промпт (загружается из файла или дефолт: "Ты полезный ассистент.")
 max_history_messages: int    # Максимум сообщений в истории (по умолчанию: 20)
 temperature: float           # Температура генерации LLM (по умолчанию: 0.7)
 log_level: str               # Уровень логирования (по умолчанию: "INFO")
@@ -278,11 +285,17 @@ conversations: dict[ConversationKey, list[ChatMessage]]
 2. Бот очищает историю диалога для этого пользователя
 3. Бот подтверждает: "История диалога очищена"
 
-### Сценарий 4: Справка (`/help`)
+### Сценарий 4: Отображение роли (`/role`)
+1. Пользователь отправляет команду `/role`
+2. Бот отправляет системный промпт, определяющий его роль
+3. Пользователь видит, какую функцию выполняет ассистент
+
+### Сценарий 5: Справка (`/help`)
 1. Пользователь отправляет команду `/help`
 2. Бот отправляет список доступных команд:
    - `/start` - начать работу
    - `/clear` - очистить историю диалога
+   - `/role` - показать роль ассистента
    - `/help` - показать справку
 
 ### Обработка других типов сообщений
@@ -304,8 +317,8 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 
 # Необязательные (с значениями по умолчанию)
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-MODEL_NAME=anthropic/claude-3.5-sonnet
-SYSTEM_PROMPT="Ты полезный ассистент."
+MODEL_NAME=openai/gpt-oss-20b:free
+SYSTEM_PROMPT_FILE=prompts/system.txt  # Если файл не найден, используется дефолт
 MAX_HISTORY_MESSAGES=20
 TEMPERATURE=0.7
 LOG_LEVEL=INFO
@@ -315,10 +328,20 @@ LOG_LEVEL=INFO
 - Загрузка через `pydantic_settings.BaseSettings` (Pydantic v2)
 - Валидация при старте приложения (fail-fast принцип)
 - Если обязательные переменные не заданы → приложение не запускается с понятным сообщением об ошибке
+- Системный промпт: если файл не существует, используется дефолтное значение ("Ты полезный ассистент.")
 
 ### Использование в коде
 ```python
 config = Config()  # Автоматически загружает из .env
+
+# Загрузка системного промпта из файла (с fallback на дефолт)
+try:
+    with open(config.system_prompt_file, "r", encoding="utf-8") as f:
+        system_prompt = f.read().strip()
+except FileNotFoundError:
+    system_prompt = "Ты полезный ассистент."
+    logger.warning(f"Файл промпта не найден, используется дефолтный")
+
 llm_client = LLMClient(config)
 bot = Bot(config)
 ```

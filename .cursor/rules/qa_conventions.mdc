@@ -1,0 +1,231 @@
+# QA Conventions для TDD
+
+## Принципы тестирования
+
+### 1. Что тестируем
+- ✅ **Бизнес-логику** - основные сценарии и поведение
+- ✅ **Граничные случаи** - валидация, ограничения, ошибки
+- ✅ **Публичные интерфейсы** - методы, которые используются извне
+- ❌ **Тривиальный код** - getters/setters, простые проксирующие методы
+- ❌ **Код фреймворков** - aiogram, openai, pydantic (только интеграцию)
+
+### 2. KISS & DRY
+- Простые, понятные тесты
+- Fixtures для переиспользования общих данных
+- Один тест = одна проверка (один assert или логически связанная группа)
+- Имя теста объясняет "что проверяем", а не "как проверяем"
+
+### 3. Coverage
+- **Минимум 70%** для критичных модулей
+- Приоритет: бизнес-логика > интеграция > утилиты
+- Не гоняться за 100% - качество важнее количества
+
+## Структура теста
+
+### Шаблон функции
+```python
+def test_что_должно_происходить() -> None:
+    """Краткое описание проверки на русском"""
+    # Arrange - подготовка данных
+    
+    # Act - выполнение действия
+    
+    # Assert - проверка результата
+```
+
+### Async тесты
+```python
+async def test_async_operation() -> None:
+    """Проверка асинхронной операции"""
+    result = await some_async_function()
+    assert result == expected
+```
+
+## Именование
+
+### Функции тестов
+- `test_<действие>` - для позитивных сценариев
+- `test_<действие>_<условие>` - для граничных случаев
+- Примеры:
+  - `test_add_message()` - добавление сообщения
+  - `test_history_limit()` - проверка лимита истории
+  - `test_conversation_key_frozen()` - проверка immutable
+
+### Комментарии
+- **На русском языке**
+- Только для неочевидной логики
+- Объясняют "почему", а не "что"
+
+## Fixtures
+
+### Правила
+- Создавать в `conftest.py` для переиспользования
+- Простые fixtures - прямо в тестовом файле
+- Имена fixtures = имена классов в snake_case
+
+### Примеры
+```python
+@pytest.fixture
+def mock_config() -> Config:
+    """Минимальная валидная конфигурация для тестов"""
+    return Config(
+        telegram_token="test_token",
+        openrouter_api_key="test_api_key",
+    )
+
+@pytest.fixture
+def conversation_manager() -> ConversationManager:
+    """ConversationManager с настройками для тестов"""
+    return ConversationManager(max_history_messages=3)
+```
+
+## Mock'и
+
+### Когда использовать
+- ✅ Внешние API (OpenRouter, Telegram)
+- ✅ Сетевые запросы
+- ✅ Медленные операции
+- ❌ Внутренняя бизнес-логика
+
+### Библиотеки
+- `unittest.mock` - для простых случаев
+- `pytest-mock` - для более сложных
+- Mock только минимум необходимого
+
+### Пример
+```python
+from unittest.mock import AsyncMock
+
+async def test_llm_client_success(mock_config: Config) -> None:
+    """Успешный запрос к LLM"""
+    mock_response = AsyncMock()
+    mock_response.choices = [AsyncMock(message=AsyncMock(content="response"))]
+    
+    # Тестируемая логика
+```
+
+## Проверка качества
+
+### Команды
+```bash
+make test         # Запуск всех тестов
+make test-cov     # Тесты с покрытием (HTML отчет)
+make quality      # Линтер + типы + форматирование
+```
+
+### Перед коммитом
+1. `make quality` - должно пройти без ошибок
+2. `make test-cov` - coverage ≥70% для измененных модулей
+3. Все тесты зеленые
+
+## TDD Workflow
+
+### Red-Green-Refactor
+1. **Red** - написать падающий тест (определить требование)
+2. **Green** - написать минимальный код, чтобы тест прошел
+3. **Refactor** - улучшить код, тесты остаются зелеными
+
+### Процесс
+```python
+# 1. Сначала тест (падает)
+def test_new_feature() -> None:
+    """Новая функция должна вернуть результат"""
+    result = new_function(input_data)
+    assert result == expected
+
+# 2. Минимальная реализация (проходит)
+def new_function(data):
+    return expected
+
+# 3. Рефакторинг (оптимизация, улучшение)
+def new_function(data: InputType) -> OutputType:
+    # Полная реализация с type hints
+    ...
+```
+
+## Типизация тестов
+
+### Type hints обязательны
+```python
+# ✅ Правильно
+def test_example(manager: ConversationManager) -> None:
+    result: list[ChatMessage] = manager.get_history(...)
+
+# ❌ Неправильно
+def test_example(manager):
+    result = manager.get_history(...)
+```
+
+## Избегаем boilerplate
+
+### НЕ тестируем
+- Тривиальные конструкторы
+- Простые getters/setters
+- Очевидное поведение встроенных типов
+- Код, который уже проверен фреймворком
+
+### Фокус на ценность
+- Каждый тест должен проверять реальное требование
+- Если тест не помогает найти баг - возможно, он лишний
+- Спросить себя: "Что сломается, если этот код не работает?"
+
+## Примеры хороших тестов
+
+### Модели данных
+```python
+def test_conversation_key_frozen() -> None:
+    """ConversationKey должен быть immutable"""
+    key = ConversationKey(chat_id=1, user_id=1)
+    try:
+        key.chat_id = 2  # type: ignore[misc]
+        raise AssertionError("ConversationKey должен быть frozen")
+    except AttributeError:
+        pass
+```
+
+### Бизнес-логика
+```python
+def test_history_limit(manager: ConversationManager) -> None:
+    """История должна ограничиваться max_history_messages"""
+    key = ConversationKey(chat_id=1, user_id=1)
+    
+    # Добавляем 5 сообщений (limit = 3)
+    for i in range(5):
+        manager.add_message(key, ChatMessage(role="user", content=f"msg{i}"))
+    
+    history = manager.get_history(key, "system")
+    
+    # system + 3 последних сообщения
+    assert len(history) == 4
+    assert history[-1].content == "msg4"  # последнее
+```
+
+### Async операции
+```python
+async def test_llm_request_timeout(llm_client: LLMClient) -> None:
+    """Таймаут при запросе к LLM должен обрабатываться"""
+    with pytest.raises(TimeoutError):
+        await llm_client.get_response(messages, timeout=0.001)
+```
+
+## Проверка покрытия
+
+### HTML отчет
+```bash
+make test-cov
+# Открыть htmlcov/index.html
+```
+
+### Интерпретация
+- **Зеленый** - покрыто тестами
+- **Красный** - не покрыто
+- **Желтый** - частично покрыто (ветки if/else)
+
+### Что делать с непокрытым кодом
+- Критичная логика < 70% → добавить тесты
+- Тривиальный код → игнорировать
+- Error handling → проверить граничные случаи
+
+---
+
+**Помни:** Тесты - это документация поведения. Пиши тесты так, чтобы через полгода можно было понять, как должен работать код.

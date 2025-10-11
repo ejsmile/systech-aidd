@@ -33,7 +33,8 @@ async def cmd_help(message: Message) -> None:
         "Доступные команды:\n"
         "/start - начать работу\n"
         "/help - показать справку\n"
-        "/clear - очистить историю диалога"
+        "/clear - очистить историю диалога\n"
+        "/role - показать роль ассистента"
     )
 
 
@@ -47,6 +48,15 @@ async def cmd_clear(message: Message, conversation_manager: ConversationManager)
     )
     conversation_manager.clear_history(key)
     await message.answer("История диалога очищена")
+
+
+@router.message(Command("role"))
+async def cmd_role(message: Message, system_prompt: str) -> None:
+    """Обработчик команды /role"""
+    if message.from_user is None:
+        return
+    logger.info(f"User {message.from_user.id} requested role")
+    await message.answer(f"Моя роль:\n\n{system_prompt}")
 
 
 @router.message(F.text)

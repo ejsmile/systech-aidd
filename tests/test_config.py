@@ -1,6 +1,8 @@
 """Тесты для валидации конфигурации"""
 
-from src.config import Config
+from pathlib import Path
+
+from src.config import Config, load_system_prompt, load_system_prompt_with_fallback
 from tests.conftest import ConfigForTests
 
 # Default values from Config
@@ -53,3 +55,31 @@ def test_config_default_values() -> None:
     assert config.max_history_messages == DEFAULT_MAX_HISTORY
     assert config.temperature == DEFAULT_TEMPERATURE
     assert config.log_level == "INFO"
+
+
+def test_load_system_prompt_from_file(tmp_path: Path) -> None:
+    """Тест загрузки системного промпта из файла."""
+    # Создать временный файл с промптом
+    prompt_file = tmp_path / "prompt.txt"
+    prompt_file.write_text("Ты тестовый ассистент.", encoding="utf-8")
+
+    # Загрузить промпт
+    prompt = load_system_prompt(str(prompt_file))
+
+    # Проверить
+    assert prompt == "Ты тестовый ассистент."
+
+
+def test_load_system_prompt_fallback_on_missing_file() -> None:
+    """Тест fallback на дефолтный промпт при отсутствии файла."""
+    # Попытаться загрузить несуществующий файл
+    prompt = load_system_prompt_with_fallback("nonexistent.txt")
+
+    # Проверить дефолтное значение
+    assert prompt == "Ты полезный ассистент."
+
+
+def test_config_system_prompt_file_default() -> None:
+    """Тест дефолтного значения system_prompt_file в конфиге."""
+    config = Config(telegram_token="test_token", openrouter_api_key="test_key")
+    assert config.system_prompt_file == "prompts/system.txt"
