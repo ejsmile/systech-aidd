@@ -6,7 +6,7 @@ from aiogram.types import Message
 
 from .conversation import ConversationManager
 from .llm_client import LLMClient
-from .models import Message as LLMMessage
+from .models import ChatMessage
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -68,7 +68,7 @@ async def handle_message(
         )
 
         # Добавляем сообщение пользователя в историю
-        user_message = LLMMessage(role="user", content=message.text)
+        user_message = ChatMessage(role="user", content=message.text)
         conversation_manager.add_message(key, user_message)
 
         # Получаем историю с system prompt
@@ -78,7 +78,7 @@ async def handle_message(
         response = await llm_client.get_response(history)
 
         # Добавляем ответ ассистента в историю
-        assistant_message = LLMMessage(role="assistant", content=response)
+        assistant_message = ChatMessage(role="assistant", content=response)
         conversation_manager.add_message(key, assistant_message)
 
         # Отправка ответа пользователю

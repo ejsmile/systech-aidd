@@ -1,6 +1,6 @@
 import logging
 
-from .models import ConversationKey, Message
+from .models import ChatMessage, ConversationKey
 
 logger = logging.getLogger(__name__)
 
@@ -8,13 +8,13 @@ logger = logging.getLogger(__name__)
 class ConversationManager:
     def __init__(self, max_history_messages: int = 20) -> None:
         self.max_history_messages: int = max_history_messages
-        self.conversations: dict[ConversationKey, list[Message]] = {}
+        self.conversations: dict[ConversationKey, list[ChatMessage]] = {}
 
     def get_conversation_key(self, chat_id: int, user_id: int) -> ConversationKey:
         """Создать ключ диалога"""
         return ConversationKey(chat_id=chat_id, user_id=user_id)
 
-    def add_message(self, key: ConversationKey, message: Message) -> None:
+    def add_message(self, key: ConversationKey, message: ChatMessage) -> None:
         """Добавить сообщение в историю"""
         if key not in self.conversations:
             self.conversations[key] = []
@@ -32,7 +32,7 @@ class ConversationManager:
 
         logger.debug(f"Added message to conversation {key}, total: {len(self.conversations[key])}")
 
-    def get_history(self, key: ConversationKey, system_prompt: str) -> list[Message]:
+    def get_history(self, key: ConversationKey, system_prompt: str) -> list[ChatMessage]:
         """Получить историю диалога с system prompt"""
         if key not in self.conversations:
             self.conversations[key] = []
@@ -43,7 +43,7 @@ class ConversationManager:
 
         if not system_msgs:
             # Добавляем system prompt, если его нет
-            system_msg = Message(role="system", content=system_prompt)
+            system_msg = ChatMessage(role="system", content=system_prompt)
             self.conversations[key].insert(0, system_msg)
             return self.conversations[key]
 

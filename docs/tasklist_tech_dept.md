@@ -7,7 +7,7 @@
 | № | Итерация | Статус | Проверка качества | Дата завершения |
 |---|----------|--------|-------------------|-----------------|
 | 1 | Инструменты качества кода | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅ | 2025-10-11 |
-| 2 | Рефакторинг моделей данных | ⏳ Ожидает | - | - |
+| 2 | Рефакторинг моделей данных | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅, imports: ✅ | 2025-10-11 |
 | 3 | Структура тестирования | ⏳ Ожидает | - | - |
 | 4 | Базовые unit-тесты | ⏳ Ожидает | - | - |
 | 5 | Покрытие интеграционными тестами | ⏳ Ожидает | - | - |
@@ -150,15 +150,15 @@ make typecheck
 **Цель:** Устранить конфликт имен Message, добавить валидацию ролей, улучшить type safety
 
 ### Задачи
-- [ ] Переименовать `Message` → `ChatMessage` в `models.py`
-- [ ] Добавить `Role` enum для валидации ролей
-- [ ] Использовать `Literal` type hint для role
-- [ ] Обновить все импорты в `handlers.py`
-- [ ] Обновить все импорты в `llm_client.py`
-- [ ] Обновить все импорты в `conversation.py`
-- [ ] Убрать workaround `from .models import Message as LLMMessage`
-- [ ] Добавить docstrings для ChatMessage и ConversationKey
-- [ ] Запустить `make quality` для проверки
+- [x] Переименовать `Message` → `ChatMessage` в `models.py`
+- [x] Добавить `Role` enum для валидации ролей
+- [x] Использовать `Literal` type hint для role
+- [x] Обновить все импорты в `handlers.py`
+- [x] Обновить все импорты в `llm_client.py`
+- [x] Обновить все импорты в `conversation.py`
+- [x] Убрать workaround `from .models import Message as LLMMessage`
+- [x] Добавить docstrings для ChatMessage и ConversationKey
+- [x] Запустить `make quality` для проверки
 
 ### Реализация
 
@@ -204,13 +204,13 @@ class ChatMessage:
 ```
 
 ### Проверка соответствия
-- [ ] ✅ Нет конфликта имен с aiogram.types.Message
-- [ ] ✅ Валидация роли через Literal (@conventions.mdc)
-- [ ] ✅ Docstrings для неочевидной логики (@conventions.mdc)
-- [ ] ✅ Код следует KISS принципу (@conventions.mdc)
-- [ ] ✅ Правильное использование dataclass (@conventions.mdc)
-- [ ] ✅ Type hints везде (@conventions.mdc + mypy)
-- [ ] ✅ Согласование перед реализацией (@workflow.mdc)
+- [x] ✅ Нет конфликта имен с aiogram.types.Message
+- [x] ✅ Валидация роли через Literal (@conventions.mdc)
+- [x] ✅ Docstrings для неочевидной логики (@conventions.mdc)
+- [x] ✅ Код следует KISS принципу (@conventions.mdc)
+- [x] ✅ Правильное использование dataclass (@conventions.mdc)
+- [x] ✅ Type hints везде (@conventions.mdc + mypy)
+- [x] ✅ Согласование перед реализацией (@workflow.mdc)
 
 ### Тест
 ```bash

@@ -3,7 +3,7 @@ import logging
 from openai import AsyncOpenAI
 
 from .config import Config
-from .models import Message
+from .models import ChatMessage
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +17,12 @@ class LLMClient:
             timeout=30.0,
         )
 
-    async def get_response(self, messages: list[Message]) -> str:
+    async def get_response(self, messages: list[ChatMessage]) -> str:
         """
         Получить ответ от LLM
 
         Args:
-            messages: История диалога (список Message)
+            messages: История диалога (список ChatMessage)
 
         Returns:
             Текст ответа от LLM
