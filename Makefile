@@ -34,3 +34,9 @@ test:
 test-cov:
 	uv run pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
 
+restart:
+	@echo "🔄 Restarting bot..."
+	@pkill -f "python -m src.main" || true
+	@sleep 1
+	uv run python -m src.main
+
