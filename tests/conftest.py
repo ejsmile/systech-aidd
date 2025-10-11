@@ -1,9 +1,26 @@
 """Общие fixtures для тестов"""
 
 import pytest
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 
 from src.config import Config
 from src.conversation import ConversationManager
+
+
+class ConfigForTests(Config):
+    """Config для тестов - без загрузки .env файла и переменных окружения"""
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Используем только параметры инициализации, игнорируем .env и env переменные
+        return (init_settings,)
 
 
 @pytest.fixture
