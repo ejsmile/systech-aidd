@@ -1,6 +1,5 @@
 ---
 alwaysApply: true
-description: Правила разработки кода
 ---
 # Правила разработки кода
 
@@ -16,6 +15,7 @@ description: Правила разработки кода
 
 ### 2. Структура кода
 - **1 класс = 1 файл** - строгое правило
+- **Type hints везде** - обязательное требование (mypy strict mode)
 - Асинхронность: используй `async/await` везде
 - Именование: понятные имена классов, методов, переменных (английский язык)
 
@@ -87,17 +87,22 @@ class Config(BaseSettings):
 ```python
 # Для immutable данных - dataclass с frozen=True
 from dataclasses import dataclass
+from typing import Literal
 
 @dataclass(frozen=True)
 class ConversationKey:
     chat_id: int
     user_id: int
 
-# Для изменяемых данных - обычный dataclass
+# Для изменяемых данных - обычный dataclass с type hints
 @dataclass
-class Message:
-    role: str
+class ChatMessage:
+    role: Literal["system", "user", "assistant"]
     content: str
+    
+    def to_dict(self) -> dict[str, str]:
+        """Конвертация в формат OpenAI API"""
+        return {"role": self.role, "content": self.content}
 ```
 
 ### Логирование
@@ -170,6 +175,83 @@ from .models import Message
 - Docstrings только для неочевидной логики
 - Комментарии - только для объяснения "почему", а не "что"
 - Основная документация - в файлах проекта в `docs/`
+
+## Качество кода
+
+### Инструменты автоматизации
+- **ruff** - форматирование и линтинг кода
+- **mypy** - проверка типов (strict mode)
+- **pytest** - автоматизированное тестирование
+- Все инструменты настроены в `pyproject.toml`
+
+### Форматирование
+- Длина строки: 100 символов
+- Автоформатирование через `ruff format`
+- Проверка перед коммитом: `make quality`
+
+### Type Hints
+
+**Обязательное требование:** Все функции, методы и атрибуты классов должны иметь type hints (требование mypy strict mode).
+
+**Специальные типы:**
+- `Literal["value1", "value2"]` для ограниченного набора значений
+- `Enum` для валидации констант с именами
+- Современный синтаксис: `list[str]`, `dict[str, int]` (Python 3.11+)
+
+**Примеры:**
+```python
+class ConversationManager:
+    def __init__(self, max_history_messages: int = 20) -> None:
+        self.conversations: dict[ConversationKey, list[ChatMessage]] = {}
+        self.max_history_messages: int = max_history_messages
+    
+    def get_history(self, key: ConversationKey, system_prompt: str) -> list[ChatMessage]:
+        ...
+
+async def handle_message(message: Message, bot: Bot) -> None:
+    ...
+
+def set_role(role: Literal["user", "assistant", "system"]) -> None:
+    ...
+```
+
+**Проверка:** `make typecheck`
+
+### Тестирование
+- Unit-тесты для критичных компонентов
+- Минимум mock'ов - только для внешних API
+- Понятные названия тестов (что проверяем, а не как)
+- Coverage > 70% для критичных модулей
+- Fixtures в `conftest.py` для переиспользования
+
+### Команды проверки качества
+```bash
+make format      # Автоформатирование кода
+make lint        # Проверка линтером
+make typecheck   # Проверка типов
+make quality     # Все проверки вместе
+make test        # Запуск тестов
+make test-cov    # Тесты с coverage
+```
+
+## Лучшие практики Python
+
+### Модели данных
+- `dataclass(frozen=True)` для immutable типов
+- `Literal` для строгой типизации строковых констант
+- `Enum` для валидации значений
+- Избегай конфликтов имен (например, `ChatMessage` вместо `Message`)
+
+### Валидация
+- Fail-fast: валидация конфигурации при старте
+- Pydantic для проверки данных из внешних источников
+- Type hints + mypy для compile-time проверок
+
+### Изоляция тестов
+- Каждый тест независим и быстр
+- Fixtures для подготовки окружения
+- Async тесты с `pytest.mark.asyncio`
+- Mock только внешние зависимости (API, сеть)
 
 ---
 

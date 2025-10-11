@@ -1,38 +1,39 @@
 import asyncio
 import logging
-from .config import Config
+
 from .bot import TelegramBot
-from .llm_client import LLMClient
+from .config import Config
 from .conversation import ConversationManager
 from .handlers import router
+from .llm_client import LLMClient
 
 
-def setup_logging(log_level: str):
+def setup_logging(log_level: str) -> None:
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
 
-async def main():
+async def main() -> None:
     # Загрузка конфигурации
-    config = Config()
-    
+    config = Config()  # type: ignore[call-arg]
+
     # Настройка логирования
     setup_logging(config.log_level)
     logger = logging.getLogger(__name__)
     logger.info("Starting systech-aidd bot...")
-    
+
     # Создание компонентов
     llm_client = LLMClient(config)
     conversation_manager = ConversationManager(max_history_messages=config.max_history_messages)
-    
+
     # Создание бота
     bot = TelegramBot(config)
-    
+
     # Регистрация handlers
     bot.dp.include_router(router)
-    
+
     try:
         # Запуск polling с dependency injection
         await bot.dp.start_polling(
@@ -49,4 +50,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
