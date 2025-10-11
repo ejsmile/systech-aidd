@@ -8,7 +8,7 @@
 |---|----------|--------|-------------------|-----------------|
 | 1 | Инструменты качества кода | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅ | 2025-10-11 |
 | 2 | Рефакторинг моделей данных | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅, imports: ✅ | 2025-10-11 |
-| 3 | Структура тестирования | ⏳ Ожидает | - | - |
+| 3 | Структура тестирования | ✅ Завершено | tests: ✅ (4 passed), coverage: 22% (models: 100%) | 2025-10-11 |
 | 4 | Базовые unit-тесты | ⏳ Ожидает | - | - |
 | 5 | Покрытие интеграционными тестами | ⏳ Ожидает | - | - |
 
@@ -237,15 +237,15 @@ uv run python -c "from src.models import ChatMessage, Role, ConversationKey; pri
 **Цель:** Создать структуру для автоматизированного тестирования
 
 ### Задачи
-- [ ] Создать директорию `tests/`
-- [ ] Создать `tests/__init__.py`
-- [ ] Создать `tests/conftest.py` с общими fixtures
-- [ ] Добавить `pytest` и `pytest-asyncio` в dev-зависимости (уже есть)
-- [ ] Добавить `pytest-cov` для coverage (уже есть)
-- [ ] Настроить `[tool.pytest.ini_options]` в pyproject.toml
-- [ ] Добавить команды в Makefile: `test`, `test-cov`
-- [ ] Создать `.coveragerc` для настройки coverage
-- [ ] Создать примеры тестов `tests/test_models.py`
+- [x] Создать директорию `tests/`
+- [x] Создать `tests/__init__.py`
+- [x] Создать `tests/conftest.py` с общими fixtures
+- [x] Добавить `pytest` и `pytest-asyncio` в dev-зависимости (уже есть)
+- [x] Добавить `pytest-cov` для coverage (уже есть)
+- [x] Настроить `[tool.pytest.ini_options]` в pyproject.toml
+- [x] Добавить команды в Makefile: `test`, `test-cov`
+- [x] Создать `.coveragerc` для настройки coverage
+- [x] Создать примеры тестов `tests/test_models.py`
 
 ### Реализация
 
@@ -341,12 +341,12 @@ test-watch:
 ```
 
 ### Проверка соответствия
-- [ ] ✅ Структура тестов понятная и простая (@conventions.mdc - KISS)
-- [ ] ✅ Следование принципу 1 класс = 1 файл теста (@conventions.mdc)
-- [ ] ✅ Fixtures переиспользуемые (@conventions.mdc)
-- [ ] ✅ Тесты изолированные и быстрые
-- [ ] ✅ Минимум mock'ов на начальном этапе (@vision.md)
-- [ ] ✅ Согласование перед реализацией (@workflow.mdc)
+- [x] ✅ Структура тестов понятная и простая (@conventions.mdc - KISS)
+- [x] ✅ Следование принципу 1 класс = 1 файл теста (@conventions.mdc)
+- [x] ✅ Fixtures переиспользуемые (@conventions.mdc)
+- [x] ✅ Тесты изолированные и быстрые
+- [x] ✅ Минимум mock'ов на начальном этапе (@vision.md)
+- [x] ✅ Согласование перед реализацией (@workflow.mdc)
 
 ### Тест
 ```bash

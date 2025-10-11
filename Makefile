@@ -1,4 +1,4 @@
-.PHONY: install install-dev run dev clean format lint typecheck quality
+.PHONY: install install-dev run dev clean format lint typecheck quality test test-cov
 
 install:
 	uv pip install -e .
@@ -27,4 +27,10 @@ typecheck:
 
 quality: format lint typecheck
 	@echo "✅ Code quality checks passed"
+
+test:
+	uv run pytest tests/ -v
+
+test-cov:
+	uv run pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
 
