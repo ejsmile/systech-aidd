@@ -16,6 +16,13 @@
 - **dataclasses** (стандартная библиотека Python) - классы данных
 - **logging** (стандартная библиотека Python) - логирование
 
+### Инструменты качества кода (dev-зависимости)
+- **ruff** - быстрый форматтер и линтер (замена black, isort, flake8)
+- **mypy** - статическая проверка типов
+- **pytest** - фреймворк для тестирования
+- **pytest-asyncio** - поддержка async тестов
+- **pytest-cov** - измерение покрытия кода тестами
+
 ### Хранение данных
 - История диалогов хранится в оперативной памяти (без персистентности)
 
@@ -47,28 +54,48 @@ systech-aidd-my/
 │   ├── handlers.py        # Класс MessageHandler - обработка сообщений
 │   ├── llm_client.py      # Класс LLMClient - работа с OpenRouter
 │   ├── conversation.py    # Класс ConversationManager - управление историей
-│   ├── models.py          # Классы данных: ConversationKey, Message
+│   ├── models.py          # Классы данных: ConversationKey, ChatMessage, Role
 │   └── config.py          # Класс Config - конфигурация
+├── tests/                 # Автоматизированные тесты
+│   ├── __init__.py
+│   ├── conftest.py        # Общие fixtures
+│   ├── test_models.py     # Тесты моделей данных
+│   ├── test_conversation.py  # Тесты ConversationManager
+│   ├── test_llm_client.py    # Тесты LLMClient
+│   ├── test_config.py        # Тесты конфигурации
+│   └── test_integration.py   # Интеграционные тесты
 ├── docs/                  # Документация
 │   ├── idea.md
 │   └── vision.md
 ├── .env.example           # Пример конфигурации
 ├── .gitignore
-├── Makefile              # Команды для сборки и запуска
-├── pyproject.toml        # Конфигурация проекта и зависимостей
+├── Makefile              # Команды для сборки, запуска и тестирования
+├── pyproject.toml        # Конфигурация проекта, зависимостей и инструментов
 ├── uv.lock               # Lockfile с точными версиями зависимостей
 └── README.md
 ```
 
 ### Описание ключевых файлов
+
+**Исходный код:**
 - **main.py** - запуск бота, связывание компонентов
 - **bot.py** - создание и настройка aiogram Bot и Dispatcher
 - **handlers.py** - обработка входящих сообщений из Telegram
 - **llm_client.py** - отправка запросов к LLM через OpenRouter
 - **conversation.py** - хранение истории диалога в памяти
-- **models.py** - классы данных (ConversationKey, Message)
+- **models.py** - классы данных (ConversationKey, ChatMessage, Role)
 - **config.py** - загрузка и валидация конфигурации
-- **pyproject.toml** - метаданные проекта и список зависимостей
+
+**Тестирование:**
+- **conftest.py** - общие fixtures для переиспользования
+- **test_models.py** - unit-тесты моделей данных
+- **test_conversation.py** - unit-тесты управления историей
+- **test_llm_client.py** - unit-тесты LLM клиента (с mock'ами)
+- **test_config.py** - тесты валидации конфигурации
+- **test_integration.py** - интеграционные тесты полного цикла
+
+**Конфигурация:**
+- **pyproject.toml** - метаданные проекта, зависимости, настройки инструментов (ruff, mypy, pytest)
 - **uv.lock** - lockfile с точными версиями всех зависимостей (создаётся автоматически)
 
 ### Пример pyproject.toml
@@ -87,6 +114,37 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C90", "PL"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 
 [build-system]
 requires = ["hatchling"]
@@ -122,10 +180,11 @@ Telegram User
 - **Config** - хранит конфигурацию (токены, URL, параметры LLM)
 - **Bot** - обертка над aiogram Bot + Dispatcher, регистрация handlers
 - **MessageHandler** - обработка команд и текстовых сообщений
-- **ConversationManager** - управление историей диалогов (dict: ConversationKey → list[Message])
+- **ConversationManager** - управление историей диалогов (dict: ConversationKey → list[ChatMessage])
 - **LLMClient** - асинхронные запросы к OpenRouter API
 - **ConversationKey** - immutable ключ для идентификации диалога (chat_id + user_id)
-- **Message** - структура сообщения (role + content)
+- **ChatMessage** - структура сообщения (role + content), формат совместим с OpenAI API
+- **Role** - enum для валидации ролей (system, user, assistant)
 
 ## 5. Модель данных
 
@@ -149,13 +208,23 @@ class ConversationKey:
     chat_id: int
     user_id: int
 
+class Role(str, Enum):
+    """Роли участников диалога"""
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+
 @dataclass
-class Message:
-    role: str      # "system", "user", или "assistant"
+class ChatMessage:
+    role: Literal["system", "user", "assistant"]  # Type-safe валидация роли
     content: str
+    
+    def to_dict(self) -> dict[str, str]:
+        """Конвертация в формат OpenAI API"""
+        return {"role": self.role, "content": self.content}
 
 # Структура в памяти:
-conversations: dict[ConversationKey, list[Message]]
+conversations: dict[ConversationKey, list[ChatMessage]]
 
 # Ключ: ConversationKey(chat_id, user_id) - для учета переподключений
 # Значение: список сообщений в формате OpenAI API
@@ -304,7 +373,67 @@ logger.debug(f"LLM response: {response}")
 logger.error(f"LLM API error: {error}")
 ```
 
-## 10. Локальная разработка
+## 10. Контроль качества и тестирование
+
+### Автоматизированные инструменты
+
+**Форматирование и линтинг (ruff):**
+- Автоматическое форматирование кода (замена black + isort)
+- Проверка стиля и потенциальных ошибок
+- Настройка: line-length=100, target-version=py311
+- Правила: E, F, I, N, W, UP, B, C90, PL
+
+**Проверка типов (mypy):**
+- Статическая проверка типов
+- Режим: strict mode для максимальной type safety
+- Требование: все функции с type hints
+- Цель: предотвращение runtime ошибок на этапе разработки
+
+**Тестирование (pytest):**
+- Unit-тесты для критичных компонентов
+- Интеграционные тесты для полного цикла работы
+- Поддержка async/await через pytest-asyncio
+- Измерение покрытия через pytest-cov
+
+### Стратегия тестирования
+
+**Приоритет покрытия:**
+1. **Модели данных** - ConversationKey, ChatMessage, Role
+2. **Бизнес-логика** - ConversationManager (история диалогов)
+3. **Интеграция** - LLMClient (с mock'ами API)
+4. **Конфигурация** - Config (валидация fail-fast)
+5. **Полный цикл** - интеграционные тесты сценариев
+
+**Принципы:**
+- Тесты изолированные и быстрые
+- Минимум mock'ов (только для внешних API)
+- Понятные названия тестов (test_что_должно_происходить)
+- Fixtures для переиспользуемых данных
+- Цель покрытия: >80% для критичных модулей
+
+**Что НЕ тестируем избыточно:**
+- Тривиальные getters/setters
+- Код фреймворка (aiogram, openai)
+- Простые проксирующие методы
+
+### Процесс контроля качества
+
+**Перед коммитом:**
+1. `make format` - автоформатирование кода
+2. `make lint` - проверка линтером
+3. `make typecheck` - проверка типов
+4. `make test` - запуск тестов
+
+**Быстрая проверка:**
+- `make quality` - запускает format + lint + typecheck одной командой
+- `make test-cov` - тесты с отчетом о покрытии
+
+**CI/CD готовность:**
+- Все команды интегрируются в GitHub Actions
+- Запуск на каждый push/PR
+- Блокировка merge при провале проверок
+
+## 11. Локальная разработка
 
 ### Требования к окружению
 - **Python 3.11+** - установленный интерпретатор Python
@@ -320,11 +449,25 @@ logger.error(f"LLM API error: {error}")
 4. Запустить: `python src/main.py` или `make run`
 
 ### Команды Makefile
+
+**Запуск:**
 - `make install` - установить зависимости
+- `make install-dev` - установить с dev-зависимостями (ruff, mypy, pytest)
 - `make run` - запустить бота
 - `make dev` - запустить в режиме разработки (LOG_LEVEL=DEBUG)
-- `make lint` - проверить код линтером
-- `make format` - форматировать код
+
+**Качество кода:**
+- `make format` - форматировать код (ruff format)
+- `make lint` - проверить линтером (ruff check)
+- `make typecheck` - проверить типы (mypy)
+- `make quality` - полная проверка (format + lint + typecheck)
+
+**Тестирование:**
+- `make test` - запустить тесты
+- `make test-cov` - тесты с отчетом о покрытии
+- `make test-watch` - запустить тесты в режиме watch
+
+**Прочее:**
 - `make clean` - очистить временные файлы
 
 ### Режим отладки

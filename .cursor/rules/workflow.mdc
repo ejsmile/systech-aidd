@@ -1,13 +1,12 @@
 ---
-alwaysApply: true
-description: Workflow разработки
+alwaysApply: false
 ---
 # Workflow разработки
 
 ## Цикл работы по итерации
 
 ### 1. Подготовка
-- Прочитать текущую итерацию из @tasklist.md
+- Прочитать текущую итерацию из @tasklist.md {input0}
 - Проверить все задачи и требования
 - Изучить релевантные части @vision.md
 
