@@ -8,14 +8,12 @@
   "python.testing.pytestArgs": [
     "tests",
     "-v",
-    "--strict-markers"
+    "-s"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   
-  // Форматирование и линтинг
-  "python.linting.enabled": true,
-  "python.formatting.provider": "none",
+  // Форматирование
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -27,12 +25,6 @@
   // Ruff настройки
   "ruff.enable": true,
   "ruff.organizeImports": true,
-  
-  // Mypy настройки
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyArgs": [
-    "--config-file=pyproject.toml"
-  ],
   
   // Исключения из поиска
   "files.exclude": {
@@ -55,4 +47,3 @@
     "**/.ruff_cache/**": true
   }
 }
-

@@ -1,6 +1,7 @@
 """Тесты для валидации конфигурации"""
 
 from src.config import Config
+from tests.conftest import ConfigForTests
 
 # Default values from Config
 DEFAULT_MAX_HISTORY = 20
@@ -11,10 +12,9 @@ CUSTOM_TEMPERATURE = 0.5
 
 def test_config_with_required_fields() -> None:
     """Конфигурация с обязательными полями"""
-    config = Config(
+    config = ConfigForTests(
         telegram_token="test_token",
         openrouter_api_key="test_key",
-        _env_file=None,  # Отключаем загрузку .env для тестов
     )
 
     assert config.telegram_token == "test_token"
@@ -42,10 +42,9 @@ def test_config_with_custom_values() -> None:
 
 def test_config_default_values() -> None:
     """Проверка значений по умолчанию"""
-    config = Config(
+    config = ConfigForTests(
         telegram_token="test",
         openrouter_api_key="test",
-        _env_file=None,  # Отключаем загрузку .env для тестов
     )
 
     assert config.openrouter_base_url == "https://openrouter.ai/api/v1"
