@@ -6,7 +6,7 @@
 
 | № | Итерация | Статус | Проверка качества | Дата завершения |
 |---|----------|--------|-------------------|-----------------|
-| 1 | Инструменты качества кода | ⏳ Ожидает | - | - |
+| 1 | Инструменты качества кода | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅ | 2025-10-11 |
 | 2 | Рефакторинг моделей данных | ⏳ Ожидает | - | - |
 | 3 | Структура тестирования | ⏳ Ожидает | - | - |
 | 4 | Базовые unit-тесты | ⏳ Ожидает | - | - |
@@ -25,15 +25,15 @@
 **Цель:** Настроить автоматизированные инструменты контроля качества (форматтер, линтер, type checker)
 
 ### Задачи
-- [ ] Добавить `ruff` в dev-зависимости pyproject.toml
-- [ ] Добавить `mypy` в dev-зависимости pyproject.toml
-- [ ] Настроить `[tool.ruff]` в pyproject.toml
-- [ ] Настроить `[tool.mypy]` в pyproject.toml
-- [ ] Добавить команды в Makefile: `format`, `lint`, `typecheck`, `quality`
-- [ ] Запустить `ruff format .` на всем коде
-- [ ] Запустить `ruff check . --fix` и исправить ошибки
-- [ ] Добавить type hints для всех классов и функций
-- [ ] Запустить `mypy src/` и исправить type hints
+- [x] Добавить `ruff` в dev-зависимости pyproject.toml
+- [x] Добавить `mypy` в dev-зависимости pyproject.toml
+- [x] Настроить `[tool.ruff]` в pyproject.toml
+- [x] Настроить `[tool.mypy]` в pyproject.toml
+- [x] Добавить команды в Makefile: `format`, `lint`, `typecheck`, `quality`
+- [x] Запустить `ruff format .` на всем коде
+- [x] Запустить `ruff check . --fix` и исправить ошибки
+- [x] Добавить type hints для всех классов и функций
+- [x] Запустить `mypy src/` и исправить type hints
 
 ### Конфигурация
 
@@ -111,13 +111,13 @@ async def get_response(self, messages: list[ChatMessage]) -> str:
 ```
 
 ### Проверка соответствия
-- [ ] ✅ Код следует KISS принципу (@conventions.mdc)
-- [ ] ✅ Следование правилам 1 класс = 1 файл (@conventions.mdc)
-- [ ] ✅ Все async/await на месте (@conventions.mdc)
-- [ ] ✅ Правильная структура импортов (@conventions.mdc)
-- [ ] ✅ Type hints для всех классов, методов и функций (@conventions.mdc)
-- [ ] ✅ Логирование соответствует уровням (@vision.md, раздел 9)
-- [ ] ✅ Согласование перед реализацией (@workflow.mdc)
+- [x] ✅ Код следует KISS принципу (@conventions.mdc)
+- [x] ✅ Следование правилам 1 класс = 1 файл (@conventions.mdc)
+- [x] ✅ Все async/await на месте (@conventions.mdc)
+- [x] ✅ Правильная структура импортов (@conventions.mdc)
+- [x] ✅ Type hints для всех классов, методов и функций (@conventions.mdc)
+- [x] ✅ Логирование соответствует уровням (@vision.md, раздел 9)
+- [x] ✅ Согласование перед реализацией (@workflow.mdc)
 
 ### Тест
 ```bash

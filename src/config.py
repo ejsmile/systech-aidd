@@ -10,7 +10,6 @@ class Config(BaseSettings):
     max_history_messages: int = 20
     temperature: float = 0.7
     log_level: str = "INFO"
-    
+
     class Config:
         env_file = ".env"
-
