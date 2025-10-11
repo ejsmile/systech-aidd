@@ -28,3 +28,9 @@ Thumbs.db
 
 # uv
 uv.lock
+
+# Testing & Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
