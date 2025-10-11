@@ -9,7 +9,7 @@
 | 1 | Инструменты качества кода | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅ | 2025-10-11 |
 | 2 | Рефакторинг моделей данных | ✅ Завершено | format: ✅, lint: ✅, typecheck: ✅, imports: ✅ | 2025-10-11 |
 | 3 | Структура тестирования | ✅ Завершено | tests: ✅ (4 passed), coverage: 22% (models: 100%) | 2025-10-11 |
-| 4 | Базовые unit-тесты | ⏳ Ожидает | - | - |
+| 4 | Базовые unit-тесты | ✅ Завершено | tests: ✅ (12 passed), coverage: 49% (conversation: 94%, llm: 100%) | 2025-10-11 |
 | 5 | Покрытие интеграционными тестами | ⏳ Ожидает | - | - |
 
 **Легенда статусов:**
@@ -370,15 +370,15 @@ make test-cov
 **Цель:** Покрыть тестами критичные компоненты (ConversationManager, LLMClient mock)
 
 ### Задачи
-- [ ] Создать `tests/test_conversation.py`
-- [ ] Тесты для `add_message()`
-- [ ] Тесты для `get_history()` с system prompt
-- [ ] Тесты для `clear_history()`
-- [ ] Тесты для ограничения истории (max_history_messages)
-- [ ] Создать `tests/test_llm_client.py` с mock'ами
-- [ ] Тест для `get_response()` с mock OpenAI API
-- [ ] Тест для обработки ошибок LLM API
-- [ ] Запустить `make test-cov` и проверить coverage > 70%
+- [x] Создать `tests/test_conversation.py`
+- [x] Тесты для `add_message()`
+- [x] Тесты для `get_history()` с system prompt
+- [x] Тесты для `clear_history()`
+- [x] Тесты для ограничения истории (max_history_messages)
+- [x] Создать `tests/test_llm_client.py` с mock'ами
+- [x] Тест для `get_response()` с mock OpenAI API
+- [x] Тест для обработки ошибок LLM API
+- [x] Запустить `make test-cov` и проверить coverage > 70%
 
 ### Реализация
 
@@ -514,12 +514,12 @@ async def test_get_response_api_error(mock_config):
 ```
 
 ### Проверка соответствия
-- [ ] ✅ Тесты изолированные и быстрые (@conventions.mdc)
-- [ ] ✅ Понятные названия тестов (@conventions.mdc)
-- [ ] ✅ Минимум mock'ов, только где необходимо (@vision.md)
-- [ ] ✅ Coverage критичных компонентов > 70%
-- [ ] ✅ Все тесты проходят
-- [ ] ✅ Согласование перед реализацией (@workflow.mdc)
+- [x] ✅ Тесты изолированные и быстрые (@conventions.mdc)
+- [x] ✅ Понятные названия тестов (@conventions.mdc)
+- [x] ✅ Минимум mock'ов, только где необходимо (@vision.md)
+- [x] ✅ Coverage критичных компонентов > 70% (conversation: 94%, llm: 100%)
+- [x] ✅ Все тесты проходят (12 passed in 0.63s)
+- [x] ✅ Согласование перед реализацией (@workflow.mdc)
 
 ### Тест
 ```bash
