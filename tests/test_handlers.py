@@ -5,7 +5,14 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from src.conversation import ConversationManager
-from src.handlers import cmd_clear, cmd_help, cmd_start, handle_message, handle_unsupported
+from src.handlers import (
+    cmd_clear,
+    cmd_help,
+    cmd_role,
+    cmd_start,
+    handle_message,
+    handle_unsupported,
+)
 from src.llm_client import LLMClient
 from src.models import ChatMessage
 
@@ -62,6 +69,7 @@ async def test_cmd_help(mock_message: Mock) -> None:
     assert "/start" in call_args
     assert "/help" in call_args
     assert "/clear" in call_args
+    assert "/role" in call_args
 
 
 @pytest.mark.asyncio
@@ -201,23 +209,23 @@ async def test_handle_message_conversation_history(
     # Используем ConversationManager с достаточным лимитом истории
     manager = ConversationManager(max_history_messages=10)
     system_prompt = "System prompt"
-    
+
     # Первое сообщение
     mock_message.text = "First message"
     await handle_message(mock_message, mock_llm_client, manager, system_prompt)
-    
+
     # Второе сообщение
     mock_message.text = "Second message"
     mock_llm_client.get_response.return_value = "Second response"
     await handle_message(mock_message, mock_llm_client, manager, system_prompt)
-    
+
     # Проверяем историю
     key = manager.get_conversation_key(
         chat_id=mock_message.chat.id,
         user_id=mock_message.from_user.id,
     )
     history = manager.get_history(key, system_prompt)
-    
+
     # System + 2 пары (user + assistant)
     assert len(history) == 5  # noqa: PLR2004
     assert history[1].content == "First message"
@@ -240,5 +248,26 @@ async def test_handle_unsupported_no_user(mock_message: Mock) -> None:
     """Тест обработки неподдерживаемых сообщений без from_user"""
     mock_message.from_user = None
     await handle_unsupported(mock_message)
+
+    mock_message.answer.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_cmd_role(mock_message: Mock) -> None:
+    """Тест команды /role"""
+    system_prompt = "Ты тестовый бот."
+    await cmd_role(mock_message, system_prompt)
+
+    mock_message.answer.assert_called_once()
+    call_args = mock_message.answer.call_args[0][0]
+    assert "Ты тестовый бот." in call_args
+
+
+@pytest.mark.asyncio
+async def test_cmd_role_no_user(mock_message: Mock) -> None:
+    """Тест команды /role без from_user"""
+    mock_message.from_user = None
+    system_prompt = "Test prompt"
+    await cmd_role(mock_message, system_prompt)
 
     mock_message.answer.assert_not_called()
