@@ -1,0 +1,58 @@
+{
+  // Python интерпретатор
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  
+  // Настройки pytest
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests",
+    "-v",
+    "--strict-markers"
+  ],
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  
+  // Форматирование и линтинг
+  "python.linting.enabled": true,
+  "python.formatting.provider": "none",
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  
+  // Ruff настройки
+  "ruff.enable": true,
+  "ruff.organizeImports": true,
+  
+  // Mypy настройки
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyArgs": [
+    "--config-file=pyproject.toml"
+  ],
+  
+  // Исключения из поиска
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    ".pytest_cache": true,
+    ".mypy_cache": true,
+    ".ruff_cache": true,
+    "htmlcov": true,
+    ".coverage": true
+  },
+  
+  // Файлы для наблюдения
+  "files.watcherExclude": {
+    "**/__pycache__/**": true,
+    "**/.venv/**": true,
+    "**/htmlcov/**": true,
+    "**/.pytest_cache/**": true,
+    "**/.mypy_cache/**": true,
+    "**/.ruff_cache/**": true
+  }
+}
+
