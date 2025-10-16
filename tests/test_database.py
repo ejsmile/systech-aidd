@@ -48,3 +48,33 @@ async def test_database_get_session(test_database_url: str) -> None:
         assert session is not None
         break
     await db.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_database_get_session_rollback_on_error(test_database_url: str) -> None:
+    """Тест rollback при ошибке в сессии"""
+    from sqlalchemy import text
+    
+    db = Database(test_database_url)
+    
+    # Пытаемся выполнить невалидный SQL, чтобы вызвать исключение
+    with pytest.raises(Exception):
+        async with db.get_session() as session:
+            # Специально вызываем ошибку внутри сессии
+            # Это должно вызвать rollback в except блоке
+            await session.execute(text("SELECT * FROM nonexistent_table"))
+    
+    await db.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_database_check_connection_with_valid_db(test_database_url: str) -> None:
+    """Тест успешного подключения с выполнением SELECT 1"""
+    db = Database(test_database_url)
+    
+    # Этот тест должен покрыть строку 53 (await conn.execute(text("SELECT 1")))
+    result = await db.check_connection()
+    
+    assert result is True, "Должно быть успешное подключение к валидной БД"
+    
+    await db.disconnect()
