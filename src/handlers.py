@@ -1,12 +1,15 @@
 import logging
+from collections.abc import AsyncGenerator, Callable
 
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .conversation import ConversationManager
 from .llm_client import LLMClient
-from .models import ChatMessage
+from .models import ChatMessage, extract_user_data
+from .user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -64,12 +67,28 @@ async def handle_message(
     message: Message,
     llm_client: LLMClient,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
     system_prompt: str,
 ) -> None:
     """Обработка текстовых сообщений через LLM с историей"""
     if message.from_user is None or message.text is None:
         return
     logger.debug(f"User {message.from_user.id} sent: {message.text}")
+
+    # Сохранить/обновить данные пользователя (с graceful degradation)
+    try:
+        user_data = extract_user_data(message.from_user)
+        session_gen = session_factory()
+        session = await session_gen.__anext__()
+        try:
+            user_repo = UserRepository(session)
+            await user_repo.upsert_user(**user_data.to_dict())
+            logger.debug(f"User data saved for user_id={user_data.user_id}")
+        finally:
+            await session_gen.aclose()
+    except Exception as e:
+        logger.error(f"Failed to save user data: {e}")
+        # Продолжаем работу даже если сохранение не удалось
 
     try:
         # Получаем ключ диалога

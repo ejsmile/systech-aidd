@@ -59,6 +59,7 @@ async def main() -> None:
             bot.bot,
             llm_client=llm_client,
             conversation_manager=conversation_manager,
+            session_factory=database.get_session,
             system_prompt=system_prompt,
         )
     except KeyboardInterrupt:
