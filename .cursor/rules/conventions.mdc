@@ -34,6 +34,9 @@ alwaysApply: true
 - **pydantic** - для валидации данных
 - **pydantic-settings** - для конфигурации
 - **logging** - встроенный модуль для логирования
+- **sqlalchemy[asyncio]** - ORM для PostgreSQL (async режим)
+- **alembic** - система миграций БД
+- **asyncpg** - асинхронный драйвер PostgreSQL
 
 ### Управление зависимостями
 - **uv** - единственный инструмент для управления пакетами и окружением
@@ -147,9 +150,10 @@ from .models import Message
 
 ## Хранение данных
 
-- **Простые данные** - в оперативной памяти (dict, list)
 - **Конфигурация** - через переменные окружения + `.env` файл
-- **НЕ используем** базы данных на начальном этапе
+- **История диалогов** - PostgreSQL (персистентное хранение, soft delete)
+- **Простые данные** - в оперативной памяти (dict, list) где это уместно
+- **Принцип:** БД используется только для данных, которые должны сохраняться между перезапусками
 
 ## Логирование
 
@@ -200,12 +204,19 @@ from .models import Message
 
 **Примеры:**
 ```python
+from collections.abc import AsyncGenerator, Callable
+from sqlalchemy.ext.asyncio import AsyncSession
+
 class ConversationManager:
-    def __init__(self, max_history_messages: int = 20) -> None:
-        self.conversations: dict[ConversationKey, list[ChatMessage]] = {}
+    def __init__(
+        self, 
+        session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
+        max_history_messages: int = 20
+    ) -> None:
+        self.session_factory = session_factory
         self.max_history_messages: int = max_history_messages
     
-    def get_history(self, key: ConversationKey, system_prompt: str) -> list[ChatMessage]:
+    async def get_history(self, key: ConversationKey, system_prompt: str) -> list[ChatMessage]:
         ...
 
 async def handle_message(message: Message, bot: Bot) -> None:

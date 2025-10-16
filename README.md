@@ -9,6 +9,7 @@ LLM-ассистент в виде Telegram-бота для взаимодейс
 ### Требования
 - **Python 3.11+** - требуемая версия
 - **[uv](https://github.com/astral-sh/uv)** - менеджер пакетов и виртуальных окружений
+- **Docker & Docker Compose** - для PostgreSQL
 - **Telegram Bot Token** - получить у [@BotFather](https://t.me/botfather)
 - **OpenRouter API Key** - получить на [openrouter.ai](https://openrouter.ai)
 
@@ -20,14 +21,18 @@ git clone <repository-url>
 cd systech-aidd-my
 
 # 2. Установить зависимости
-make install    # или: uv venv && source .venv/bin/activate && uv pip install -e .
+make install-dev    # включает dev-зависимости для тестирования
 
 # 3. Настроить конфигурацию
 cp sample.env .env
 # Отредактировать .env и добавить токены
 
-# 4. Запустить бота
-make run        # или: python src/main.py
+# 4. Запустить PostgreSQL
+make db-up          # запускает PostgreSQL в Docker
+make db-migrate     # применяет миграции
+
+# 5. Запустить бота
+make run        # или: make dev для DEBUG режима
 ```
 
 ### Конфигурация
@@ -39,9 +44,13 @@ make run        # или: python src/main.py
 TELEGRAM_TOKEN=your_telegram_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
+# База данных
+DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
+
 # Опциональные (значения по умолчанию)
 MODEL_NAME=anthropic/claude-3.5-sonnet
 SYSTEM_PROMPT="Ты полезный ассистент."
+SYSTEM_PROMPT_FILE=prompts/system.txt
 MAX_HISTORY_MESSAGES=20
 TEMPERATURE=0.7
 LOG_LEVEL=INFO
@@ -50,9 +59,16 @@ LOG_LEVEL=INFO
 ## 📋 Основные команды
 
 ```bash
+# База данных
+make db-up         # Запустить PostgreSQL в Docker
+make db-down       # Остановить PostgreSQL
+make db-migrate    # Применить миграции
+make db-reset      # Сбросить и пересоздать БД
+
 # Запуск
 make run           # Запустить бота
 make dev           # Запустить в DEBUG режиме
+make restart       # Перезапустить бота
 
 # Качество кода
 make quality       # Полная проверка: format + lint + typecheck
@@ -76,10 +92,15 @@ systech-aidd-my/
 │   ├── handlers.py       # MessageHandler - обработка сообщений
 │   ├── llm_client.py     # LLMClient - работа с OpenRouter
 │   ├── conversation.py   # ConversationManager - история диалогов
+│   ├── repository.py     # MessageRepository - работа с БД
+│   ├── database.py       # Database - управление подключением
+│   ├── db_models.py      # SQLAlchemy модели
 │   ├── models.py         # Модели данных
 │   └── config.py         # Config - конфигурация
-├── tests/                # Автоматизированные тесты
+├── alembic/              # Миграции базы данных
+├── tests/                # Автоматизированные тесты (51 тест, coverage 84%)
 ├── docs/                 # Документация
+├── docker-compose.yml    # PostgreSQL для разработки
 ├── Makefile             # Команды разработки
 └── pyproject.toml       # Конфигурация проекта
 ```
@@ -91,8 +112,13 @@ systech-aidd-my/
 - **Python 3.11+** с async/await
 - **aiogram 3.x** - Telegram Bot API
 - **OpenRouter** - доступ к LLM моделям
+- **PostgreSQL 16** - персистентное хранение истории
+- **SQLAlchemy 2.x (async)** - ORM для работы с БД
+- **Alembic** - миграции базы данных
+- **Docker Compose** - локальная инфраструктура
 - **uv** - управление зависимостями
 - **ruff + mypy + pytest** - качество кода
+- **testcontainers** - изолированные тесты
 
 Полный стек см. в [docs/vision.md](docs/vision.md)
 
@@ -102,7 +128,8 @@ systech-aidd-my/
 - **1 класс = 1 файл** - четкая структура
 - **Type hints везде** - mypy strict mode
 - **Async/await** - асинхронность по умолчанию
-- **Coverage >70%** - качественное тестирование
+- **Coverage >80%** - качественное тестирование (текущий: 84%, 51 тест)
+- **Testcontainers** - изолированные тесты с реальной БД
 
 Подробные правила см. в [.cursor/rules/conventions.mdc](.cursor/rules/conventions.mdc)
 
@@ -119,14 +146,16 @@ Workflow разработки см. в [.cursor/rules/workflow.mdc](.cursor/rule
 
 - **[docs/idea.md](docs/idea.md)** - концепция проекта
 - **[docs/vision.md](docs/vision.md)** - техническое видение и архитектура
+- **[docs/roadmap.md](docs/roadmap.md)** - роадмап и спринты проекта
 - **[.cursor/rules/conventions.mdc](.cursor/rules/conventions.mdc)** - правила разработки
 - **[.cursor/rules/workflow.mdc](.cursor/rules/workflow.mdc)** - workflow разработки
 
 ## 🎯 Команды бота
 
-- `/start` - начать работу
-- `/clear` - очистить историю
-- `/help` - показать справку
+- `/start` - начать работу с ботом
+- `/help` - показать справку по командам
+- `/clear` - очистить историю диалога (soft delete)
+- `/role` - показать текущую роль ассистента
 
 ## 📝 Лицензия
 

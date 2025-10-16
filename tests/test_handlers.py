@@ -89,16 +89,18 @@ async def test_cmd_clear(mock_message: Mock, conversation_manager: ConversationM
         chat_id=mock_message.chat.id,
         user_id=mock_message.from_user.id,
     )
-    conversation_manager.add_message(key, ChatMessage(role="user", content="Test"))
+    await conversation_manager.add_message(key, ChatMessage(role="user", content="Test"))
 
     # Проверяем, что история не пустая
-    assert len(conversation_manager.conversations[key]) > 0
+    history_before = await conversation_manager.get_history(key, "system")
+    assert len(history_before) > 1  # system + user
 
     # Вызываем команду clear
     await cmd_clear(mock_message, conversation_manager)
 
-    # Проверяем, что история очищена
-    assert key not in conversation_manager.conversations
+    # Проверяем, что история очищена (остался только system prompt)
+    history_after = await conversation_manager.get_history(key, "system")
+    assert len(history_after) == 1  # only system
     mock_message.answer.assert_called_once_with("История диалога очищена")
 
 
@@ -133,7 +135,7 @@ async def test_handle_message_success(
         chat_id=mock_message.chat.id,
         user_id=mock_message.from_user.id,
     )
-    history = conversation_manager.get_history(key, system_prompt)
+    history = await conversation_manager.get_history(key, system_prompt)
 
     # В истории должно быть: system, user, assistant
     assert len(history) == 3  # noqa: PLR2004
@@ -204,34 +206,34 @@ async def test_handle_message_llm_error(
 async def test_handle_message_conversation_history(
     mock_message: Mock,
     mock_llm_client: Mock,
+    conversation_manager: ConversationManager,
 ) -> None:
     """Тест сохранения истории диалога"""
-    # Используем ConversationManager с достаточным лимитом истории
-    manager = ConversationManager(max_history_messages=10)
     system_prompt = "System prompt"
 
     # Первое сообщение
     mock_message.text = "First message"
-    await handle_message(mock_message, mock_llm_client, manager, system_prompt)
+    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
 
     # Второе сообщение
     mock_message.text = "Second message"
     mock_llm_client.get_response.return_value = "Second response"
-    await handle_message(mock_message, mock_llm_client, manager, system_prompt)
+    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
 
     # Проверяем историю
-    key = manager.get_conversation_key(
+    key = conversation_manager.get_conversation_key(
         chat_id=mock_message.chat.id,
         user_id=mock_message.from_user.id,
     )
-    history = manager.get_history(key, system_prompt)
+    history = await conversation_manager.get_history(key, system_prompt)
 
-    # System + 2 пары (user + assistant)
-    assert len(history) == 5  # noqa: PLR2004
-    assert history[1].content == "First message"
-    assert history[2].content == "LLM response"
-    assert history[3].content == "Second message"
-    assert history[4].content == "Second response"
+    # System + max 3 сообщения (limit в conftest)
+    # Должно быть: system, assistant (LLM response), user (Second message), assistant (Second response)
+    assert len(history) == 4  # noqa: PLR2004
+    assert history[0].role == "system"
+    assert history[1].content == "LLM response"  # Старое assistant сообщение сохранилось
+    assert history[2].content == "Second message"
+    assert history[3].content == "Second response"
 
 
 @pytest.mark.asyncio

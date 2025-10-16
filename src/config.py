@@ -25,6 +25,7 @@ def load_system_prompt_with_fallback(file_path: str) -> str:
 class Config(BaseSettings):
     telegram_token: str
     openrouter_api_key: str
+    database_url: str = "postgresql+asyncpg://aidd_user:aidd_password@localhost:5432/aidd_db"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     model_name: str = "openai/gpt-oss-20b:free"
     system_prompt: str = "Ты полезный ассистент."
