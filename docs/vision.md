@@ -24,10 +24,11 @@
 - **pytest-cov** - измерение покрытия кода тестами
 
 ### Хранение данных
-- **PostgreSQL** - персистентное хранение истории диалогов
+- **PostgreSQL 16** - персистентное хранение истории диалогов и пользователей
 - **SQLAlchemy 2.x (async)** - ORM для работы с БД
 - **Alembic** - система миграций
 - **asyncpg** - асинхронный драйвер PostgreSQL
+- **Docker Compose** - запуск PostgreSQL локально (настройки в `docker-compose.yml`)
 - **testcontainers** - изоляция тестов с реальной БД
 
 ## 2. Принцип разработки
@@ -55,34 +56,43 @@ systech-aidd-my/
 │   ├── __init__.py
 │   ├── main.py            # Точка входа в приложение
 │   ├── bot.py             # Класс Bot - инициализация aiogram
-│   ├── handlers.py        # Класс MessageHandler - обработка сообщений и команд
+│   ├── handlers.py        # Обработка сообщений и команд из Telegram
 │   ├── llm_client.py      # Класс LLMClient - работа с OpenRouter
 │   ├── conversation.py    # Класс ConversationManager - управление историей
-│   ├── models.py          # Классы данных: ConversationKey, ChatMessage, Role
+│   ├── models.py          # Классы данных: ConversationKey, ChatMessage, Role, UserData
 │   ├── config.py          # Класс Config - конфигурация
 │   ├── database.py        # Класс Database - управление подключением к БД
-│   ├── db_models.py       # SQLAlchemy модели (Message)
-│   └── repository.py      # MessageRepository - слой доступа к данным
+│   ├── db_models.py       # SQLAlchemy модели (Message, User)
+│   ├── repository.py      # MessageRepository - слой доступа к данным
+│   └── user_repository.py # UserRepository - работа с пользователями
 ├── prompts/               # Файлы системных промптов
 │   └── system.txt         # Системный промпт (роль ассистента)
 ├── tests/                 # Автоматизированные тесты
 │   ├── __init__.py
 │   ├── conftest.py        # Общие fixtures
-│   ├── test_models.py     # Тесты моделей данных
+│   ├── test_models.py     # Тесты моделей данных (ChatMessage, UserData)
 │   ├── test_conversation.py  # Тесты ConversationManager
 │   ├── test_llm_client.py    # Тесты LLMClient
 │   ├── test_config.py        # Тесты конфигурации
-│   └── test_integration.py   # Интеграционные тесты
+│   ├── test_repository.py    # Тесты MessageRepository
+│   ├── test_user_repository.py  # Тесты UserRepository
+│   ├── test_handlers.py      # Тесты обработчиков
+│   ├── test_integration.py   # Интеграционные тесты
+│   └── test_user_integration.py  # Интеграционные тесты пользователей
 ├── alembic/              # Миграции базы данных
 │   ├── versions/         # Файлы миграций
 │   └── env.py            # Настройка Alembic
 ├── docs/                 # Документация
 │   ├── idea.md
-│   └── vision.md
+│   ├── vision.md
+│   ├── roadmap.md         # Роадмап проекта
+│   ├── database_schema.md # Схема базы данных
+│   └── tasklists/        # Детальные планы спринтов
 ├── .env.example          # Пример конфигурации
 ├── .gitignore
 ├── alembic.ini           # Конфигурация Alembic
-├── docker-compose.yml    # PostgreSQL контейнер
+├── docker-compose.yml    # PostgreSQL контейнер (настройки подключения к БД)
+├── Dockerfile.migrations # Docker образ для автоматических миграций
 ├── Makefile              # Команды для сборки, запуска и тестирования
 ├── pyproject.toml        # Конфигурация проекта, зависимостей и инструментов
 ├── uv.lock               # Lockfile с точными версиями зависимостей
@@ -97,26 +107,34 @@ systech-aidd-my/
 - **handlers.py** - обработка входящих сообщений и команд из Telegram (`/start`, `/help`, `/clear`, `/role`)
 - **llm_client.py** - отправка запросов к LLM через OpenRouter
 - **conversation.py** - управление историей диалога через MessageRepository
-- **models.py** - классы данных (ConversationKey, ChatMessage, Role)
+- **models.py** - классы данных (ConversationKey, ChatMessage, Role, UserData)
 - **config.py** - загрузка и валидация конфигурации
 - **database.py** - управление подключением к PostgreSQL
-- **db_models.py** - SQLAlchemy модели (Message с soft delete)
-- **repository.py** - MessageRepository для работы с БД
+- **db_models.py** - SQLAlchemy модели (Message с soft delete, User)
+- **repository.py** - MessageRepository для работы с сообщениями
+- **user_repository.py** - UserRepository для работы с пользователями
 
 **Промпты:**
 - **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)
 
 **Тестирование:**
-- **conftest.py** - общие fixtures для переиспользования
-- **test_models.py** - unit-тесты моделей данных
+- **conftest.py** - общие fixtures для переиспользования (testcontainers, session factory)
+- **test_models.py** - unit-тесты моделей данных (ChatMessage, UserData)
 - **test_conversation.py** - unit-тесты управления историей
 - **test_llm_client.py** - unit-тесты LLM клиента (с mock'ами)
 - **test_config.py** - тесты валидации конфигурации
+- **test_repository.py** - unit-тесты MessageRepository
+- **test_user_repository.py** - unit-тесты UserRepository
+- **test_handlers.py** - unit-тесты обработчиков
 - **test_integration.py** - интеграционные тесты полного цикла
+- **test_user_integration.py** - интеграционные тесты работы с пользователями
 
 **Конфигурация:**
 - **pyproject.toml** - метаданные проекта, зависимости, настройки инструментов (ruff, mypy, pytest)
 - **uv.lock** - lockfile с точными версиями всех зависимостей (создаётся автоматически)
+- **docker-compose.yml** - настройки PostgreSQL контейнера (user, password, database, port)
+- **alembic.ini** - конфигурация системы миграций
+- **.env** - переменные окружения (не в git, см. .env.example)
 
 ### Пример pyproject.toml
 
@@ -183,37 +201,42 @@ Telegram User
       ↓
    [aiogram Bot] (bot.py)
       ↓
-[MessageHandler] (handlers.py)
-      ↓
-[ConversationManager] (conversation.py) ←→ [LLMClient] (llm_client.py)
-      ↓                                            ↓
-[MessageRepository] (repository.py)       OpenRouter API
-      ↓
-[PostgreSQL Database]
+[Handlers] (handlers.py)
+      ↓                  ↓
+[UserRepository] ←  [ConversationManager] (conversation.py) ←→ [LLMClient] (llm_client.py)
+      ↓                          ↓                                       ↓
+      ↓                [MessageRepository] (repository.py)      OpenRouter API
+      ↓                          ↓
+      └──────────────→ [PostgreSQL Database] ←─────────────┘
+                       (tables: users, messages)
 ```
 
 ### Поток обработки сообщения
 1. **При запуске** бот загружает системный промпт из файла `prompts/system.txt` (или использует дефолт, если файл не найден)
 2. **Пользователь** отправляет сообщение в Telegram
 3. **Bot** (aiogram) получает сообщение через polling
-4. **MessageHandler** обрабатывает входящее сообщение
-5. **ConversationManager** добавляет сообщение в историю диалога
-6. **LLMClient** отправляет историю + системный промпт в OpenRouter
-7. **OpenRouter** возвращает ответ от LLM
-8. **ConversationManager** добавляет ответ в историю
-9. **MessageHandler** отправляет ответ пользователю через Bot
+4. **Handler** обрабатывает входящее сообщение
+5. **UserRepository** сохраняет/обновляет данные пользователя (upsert)
+6. **ConversationManager** добавляет сообщение в историю диалога
+7. **LLMClient** отправляет историю + системный промпт в OpenRouter
+8. **OpenRouter** возвращает ответ от LLM
+9. **ConversationManager** добавляет ответ в историю
+10. **Handler** отправляет ответ пользователю через Bot
 
 ### Ответственности классов
 - **Config** - хранит конфигурацию (токены, URL, параметры LLM, путь к файлу промпта, database_url)
 - **Bot** - обертка над aiogram Bot + Dispatcher, регистрация handlers
-- **MessageHandler** - обработка команд (`/start`, `/help`, `/clear`, `/role`) и текстовых сообщений
+- **Handlers** - обработка команд (`/start`, `/help`, `/clear`, `/role`) и текстовых сообщений
 - **ConversationManager** - управление историей диалогов через MessageRepository
 - **LLMClient** - асинхронные запросы к OpenRouter API
 - **Database** - управление async engine и session factory для PostgreSQL
 - **Message (db_models)** - SQLAlchemy модель сообщения с soft delete
+- **User (db_models)** - SQLAlchemy модель пользователя (user_id, username, first_name, last_name, bio, age)
 - **MessageRepository** - CRUD операции с сообщениями (add_message, get_history, soft_delete_history)
+- **UserRepository** - CRUD операции с пользователями (upsert_user, get_user_by_id, get_user_message_count)
 - **ConversationKey** - immutable ключ для идентификации диалога (chat_id + user_id)
 - **ChatMessage** - структура сообщения (role + content), формат совместим с OpenAI API
+- **UserData** - структура данных пользователя из Telegram (user_id, username, first_name, last_name)
 - **Role** - enum для валидации ролей (system, user, assistant)
 
 ## 5. Модель данных
@@ -222,7 +245,9 @@ Telegram User
 ```python
 telegram_token: str          # Токен Telegram бота
 openrouter_api_key: str      # API ключ OpenRouter
-database_url: str            # URL подключения к PostgreSQL (по умолчанию: "postgresql+asyncpg://aidd_user:aidd_password@localhost:5432/aidd_db")
+database_url: str            # URL подключения к PostgreSQL
+                             # По умолчанию: "postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db"
+                             # Параметры (user, password, db, port) смотри в docker-compose.yml
 openrouter_base_url: str     # URL OpenRouter (по умолчанию: "https://openrouter.ai/api/v1")
 model_name: str              # Название модели (например: "openai/gpt-oss-20b:free")
 system_prompt_file: str      # Путь к файлу с системным промптом (по умолчанию: "prompts/system.txt")
@@ -232,13 +257,23 @@ temperature: float           # Температура генерации LLM (п
 log_level: str               # Уровень логирования (по умолчанию: "INFO")
 ```
 
-### История диалога (База данных)
+### База данных
+
+**Таблицы:**
 ```python
 # Классы данных:
 @dataclass(frozen=True)
 class ConversationKey:
     chat_id: int
     user_id: int
+
+@dataclass(frozen=True)
+class UserData:
+    """Данные пользователя из Telegram"""
+    user_id: int
+    username: str | None
+    first_name: str
+    last_name: str | None
 
 class Role(str, Enum):
     """Роли участников диалога"""
@@ -255,8 +290,24 @@ class ChatMessage:
         """Конвертация в формат OpenAI API"""
         return {"role": self.role, "content": self.content}
 
-# SQLAlchemy модель:
+# SQLAlchemy модели:
+class User(Base):
+    """Модель пользователя Telegram"""
+    user_id: int (BIGINT PRIMARY KEY)
+    username: str | None (VARCHAR(255) UNIQUE NULLABLE)
+    first_name: str | None (VARCHAR(255) NULLABLE)
+    last_name: str | None (VARCHAR(255) NULLABLE)
+    bio: str | None (TEXT NULLABLE)
+    age: int | None (INTEGER NULLABLE)
+    created_at: datetime (TIMESTAMP NOT NULL DEFAULT NOW())
+    updated_at: datetime (TIMESTAMP NOT NULL DEFAULT NOW())
+
+# Индексы users:
+# - idx_users_username: (username) для быстрого поиска
+# - idx_users_created: (created_at DESC) для сортировки
+
 class Message(Base):
+    """Модель сообщения в диалоге"""
     id: int (BIGSERIAL PRIMARY KEY)
     chat_id: int (BIGINT NOT NULL)
     user_id: int (BIGINT NOT NULL)
@@ -266,14 +317,15 @@ class Message(Base):
     created_at: datetime (TIMESTAMP NOT NULL DEFAULT NOW())
     deleted_at: datetime | None (TIMESTAMP NULL)  # Soft delete
 
-# Индексы:
+# Индексы messages:
 # - idx_messages_lookup: (chat_id, user_id, deleted_at, created_at DESC)
 # - idx_messages_created: (created_at DESC)
 
-# Хранение: PostgreSQL
-# Схема: Денормализованная (одна таблица messages)
-# Стратегия удаления: Soft delete (deleted_at IS NULL для активных)
+# Хранение: PostgreSQL 16
+# Связи: User ←→ Message (по user_id, без foreign key для упрощения)
+# Стратегия удаления: Soft delete для messages (deleted_at IS NULL для активных)
 # Ограничение: последние 20 сообщений (+ system prompt) через LIMIT в SQL
+# Миграции: Alembic (автоматические через Docker при старте)
 ```
 
 ### Встроенные типы
@@ -354,7 +406,8 @@ TELEGRAM_TOKEN=your_telegram_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
 # База данных
-DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5432/aidd_db
+# Параметры подключения (user, password, db, port) смотри в docker-compose.yml
+DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
 
 # Необязательные (с значениями по умолчанию)
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
@@ -364,6 +417,13 @@ MAX_HISTORY_MESSAGES=20
 TEMPERATURE=0.7
 LOG_LEVEL=INFO
 ```
+
+**Важно:** Параметры подключения к PostgreSQL (user, password, database, port) настраиваются в `docker-compose.yml`. 
+По умолчанию:
+- User: `aidd_user`
+- Password: `aidd_password`
+- Database: `aidd_db`
+- Port: `5433` (внешний), `5432` (внутри контейнера)
 
 ### Валидация конфигурации
 - Загрузка через `pydantic_settings.BaseSettings` (Pydantic v2)
@@ -502,6 +562,7 @@ logger.error(f"LLM API error: {error}")
 ### Требования к окружению
 - **Python 3.11+** - установленный интерпретатор Python
 - **uv** - менеджер пакетов и виртуальных окружений
+- **Docker** - для запуска PostgreSQL (настройки в `docker-compose.yml`)
 - **make** - для автоматизации команд (опционально)
 - **Telegram Bot Token** - получить через [@BotFather](https://t.me/botfather)
 - **OpenRouter API Key** - получить на [openrouter.ai](https://openrouter.ai)
@@ -509,10 +570,15 @@ logger.error(f"LLM API error: {error}")
 ### Установка и запуск
 1. Создать виртуальное окружение: `uv venv`
 2. Установить зависимости: `uv pip install -e ".[dev]"` или `make install-dev`
-3. Настроить `.env` файл (обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`, `DATABASE_URL`)
-4. Запустить PostgreSQL: `make db-up`
+3. Настроить `.env` файл:
+   - Обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`
+   - `DATABASE_URL` - параметры подключения смотри в `docker-compose.yml`
+4. Запустить PostgreSQL: `make db-up` (использует настройки из `docker-compose.yml`)
 5. Применить миграции: `make db-migrate`
 6. Запустить бота: `make run`
+
+**Примечание:** PostgreSQL запускается в Docker контейнере с настройками из `docker-compose.yml`. 
+Убедитесь, что порт 5433 свободен или измените маппинг портов в `docker-compose.yml`.
 
 ### Команды Makefile
 
@@ -523,11 +589,13 @@ logger.error(f"LLM API error: {error}")
 - `make dev` - запустить в режиме разработки (LOG_LEVEL=DEBUG)
 
 **База данных:**
-- `make db-up` - запустить PostgreSQL через Docker
+- `make db-up` - запустить PostgreSQL через Docker (настройки из `docker-compose.yml`)
 - `make db-down` - остановить PostgreSQL
-- `make db-migrate` - применить миграции
+- `make db-migrate` - применить миграции (автоматически при `make db-up`)
 - `make db-revision` - создать новую миграцию (m="description")
 - `make db-reset` - полный сброс БД и повторное применение миграций
+
+**Примечание:** Все параметры подключения к PostgreSQL (user, password, database, port) настраиваются в `docker-compose.yml`.
 
 **Качество кода:**
 - `make format` - форматировать код (ruff format)

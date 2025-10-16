@@ -20,6 +20,7 @@
 |-----|----------|--------|------|----------|--------------|------------------|
 | **SP-0** | Базовая реализация | ✅ Завершен | Создание базового LLM-ассистента в виде Telegram-бота с полной инфраструктурой | Реализован полностью функциональный бот с поддержкой диалогов, управлением историей, интеграцией с LLM через OpenRouter, системой команд (/start, /help, /clear, /role), загрузкой системного промпта из файла, инструментами контроля качества кода (ruff, mypy) и автоматизированным тестированием (pytest, coverage >80%). | • Базовая инфраструктура и Echo bot<br>• LLM клиент<br>• Интеграция Telegram + LLM<br>• История диалогов<br>• Финальная интеграция<br>• Команда /role и системный промпт из файла<br>• Инструменты качества кода (ruff, mypy)<br>• Рефакторинг моделей данных<br>• Структура тестирования<br>• Базовые unit-тесты<br>• Покрытие интеграционными тестами | [tasklist-sp0.md](./tasklists/tasklist-sp0.md)<br>[tasklist_tech_dept-sp0.md](./tasklists/tasklist_tech_dept-sp0.md) |
 | **SP-1** | Персистентное хранение данных | ✅ Завершен | Реализовать сохранение истории диалогов в базе данных вместо текущего in-memory хранения. История диалогов должна сохраняться между перезапусками бота. | Реализовано персистентное хранение с PostgreSQL 16, SQLAlchemy 2.x (async), Alembic, soft delete, seed данные, testcontainers. Coverage 84% (47/47 тестов). | • PostgreSQL 16 через Docker Compose<br>• SQLAlchemy 2.x (async) + Alembic<br>• Модель Message с soft delete<br>• MessageRepository<br>• Рефакторинг ConversationManager<br>• Auto-миграции через Docker<br>• Seed данные<br>• Testcontainers для тестов | [Detailed Plan](../.cursor/plans/persistent-storage-s1-d51c60a2.plan.md) |
+| **SP-2** | Получение данных о пользователе | ✅ Завершен | Получить данные о пользователе в Telegram и сохранить в базу данных: username, имя, фамилия | Реализовано сохранение данных пользователей: модель User, UserRepository, миграция существующих пользователей, upsert логика. Coverage 86% (78/78 тестов). | • Анализ требований и проектирование схемы БД<br>• Модель User + миграция Alembic<br>• Data-миграция существующих пользователей<br>• UserRepository (upsert, get_by_id, statistics)<br>• Получение данных из Telegram (UserData)<br>• Интеграция в handlers<br>• Покрытие тестами (86% coverage) | [tasklist-sp2.md](./tasklists/tasklist-sp2.md) |
 
 ---
 
@@ -51,5 +52,6 @@
 | 2025-10-16 | Создан роадмап проекта, добавлен завершенный спринт SP-0 |
 | 2025-10-16 | Добавлен спринт SP-1: Персистентное хранение данных |
 | 2025-10-16 | Начата реализация SP-1, добавлена ссылка на детальный план |
-
-|| 2025-10-16 | ✅ Завершен SP-1: PostgreSQL + SQLAlchemy 2.x + Alembic, soft delete, testcontainers, coverage 84%, 47/47 тестов |
+| 2025-10-16 | ✅ Завершен SP-1: PostgreSQL + SQLAlchemy 2.x + Alembic, soft delete, testcontainers, coverage 84%, 47/47 тестов |
+| 2025-10-16 | Добавлен спринт SP-2: Получение данных о пользователе |
+| 2025-10-16 | ✅ Завершен SP-2: User модель, UserRepository, data-миграция, upsert логика, coverage 86%, 78/78 тестов |

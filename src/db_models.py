@@ -49,3 +49,40 @@ class Message(Base):
             f"<Message(id={self.id}, chat_id={self.chat_id}, "
             f"user_id={self.user_id}, role={self.role})>"
         )
+
+
+class User(Base):
+    """
+    Модель пользователя Telegram.
+
+    Хранит профильные данные пользователя, полученные через Bot API.
+    Поддерживает обновление данных через UPSERT при каждом взаимодействии.
+    """
+
+    __tablename__ = "users"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
+
+    __table_args__ = (
+        # Индекс для быстрого поиска по username (только для NOT NULL значений)
+        Index("idx_users_username", "username", postgresql_where=text("username IS NOT NULL")),
+        # Индекс для сортировки по дате создания
+        Index("idx_users_created", "created_at", postgresql_ops={"created_at": "DESC"}),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<User(user_id={self.user_id}, username={self.username}, "
+            f"first_name={self.first_name})>"
+        )

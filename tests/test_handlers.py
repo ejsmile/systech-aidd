@@ -1,8 +1,10 @@
 """Тесты для обработчиков команд и сообщений"""
 
+from collections.abc import AsyncGenerator, Callable
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.conversation import ConversationManager
 from src.handlers import (
@@ -23,6 +25,9 @@ def mock_message() -> Mock:
     message = Mock()
     message.from_user = Mock()
     message.from_user.id = 12345
+    message.from_user.username = "testuser"
+    message.from_user.first_name = "Test"
+    message.from_user.last_name = "User"
     message.chat = Mock()
     message.chat.id = 67890
     message.text = "Test message"
@@ -120,12 +125,15 @@ async def test_handle_message_success(
     mock_message: Mock,
     mock_llm_client: Mock,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
 ) -> None:
     """Тест успешной обработки текстового сообщения"""
     system_prompt = "You are a helpful assistant"
     mock_message.text = "Hello, bot!"
 
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     # Проверяем, что LLM был вызван
     mock_llm_client.get_response.assert_called_once()
@@ -154,12 +162,15 @@ async def test_handle_message_no_user(
     mock_message: Mock,
     mock_llm_client: Mock,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
 ) -> None:
     """Тест обработки сообщения без from_user"""
     mock_message.from_user = None
     system_prompt = "System prompt"
 
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     mock_llm_client.get_response.assert_not_called()
     mock_message.answer.assert_not_called()
@@ -170,12 +181,15 @@ async def test_handle_message_no_text(
     mock_message: Mock,
     mock_llm_client: Mock,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
 ) -> None:
     """Тест обработки сообщения без текста"""
     mock_message.text = None
     system_prompt = "System prompt"
 
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     mock_llm_client.get_response.assert_not_called()
     mock_message.answer.assert_not_called()
@@ -186,6 +200,7 @@ async def test_handle_message_llm_error(
     mock_message: Mock,
     mock_llm_client: Mock,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
 ) -> None:
     """Тест обработки ошибки LLM API"""
     system_prompt = "System prompt"
@@ -194,7 +209,9 @@ async def test_handle_message_llm_error(
     # Симулируем ошибку LLM
     mock_llm_client.get_response.side_effect = Exception("API Error")
 
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     # Проверяем, что пользователю отправлено сообщение об ошибке
     mock_message.answer.assert_called_once()
@@ -207,18 +224,23 @@ async def test_handle_message_conversation_history(
     mock_message: Mock,
     mock_llm_client: Mock,
     conversation_manager: ConversationManager,
+    session_factory: Callable[[], AsyncGenerator[AsyncSession, None]],
 ) -> None:
     """Тест сохранения истории диалога"""
     system_prompt = "System prompt"
 
     # Первое сообщение
     mock_message.text = "First message"
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     # Второе сообщение
     mock_message.text = "Second message"
     mock_llm_client.get_response.return_value = "Second response"
-    await handle_message(mock_message, mock_llm_client, conversation_manager, system_prompt)
+    await handle_message(
+        mock_message, mock_llm_client, conversation_manager, session_factory, system_prompt
+    )
 
     # Проверяем историю
     key = conversation_manager.get_conversation_key(
