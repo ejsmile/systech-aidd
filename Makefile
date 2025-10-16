@@ -1,4 +1,4 @@
-.PHONY: install install-dev run dev clean format lint typecheck quality test test-cov
+.PHONY: install install-dev run dev clean format lint typecheck quality test test-cov db-up db-down db-migrate db-revision db-reset restart
 
 install:
 	uv pip install -e .
@@ -33,6 +33,30 @@ test:
 
 test-cov:
 	uv run pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
+
+# Database commands
+db-up:
+	docker compose up -d postgres
+	@echo "⏳ Waiting for PostgreSQL to be ready..."
+	@sleep 3
+	@echo "✅ PostgreSQL is ready"
+
+db-down:
+	docker compose down
+
+db-migrate:
+	uv run alembic upgrade head
+
+db-revision:
+	uv run alembic revision --autogenerate -m "$(m)"
+
+db-reset:
+	docker compose down -v
+	docker compose up -d postgres
+	@echo "⏳ Waiting for PostgreSQL to be ready..."
+	@sleep 3
+	uv run alembic upgrade head
+	@echo "✅ Database reset complete"
 
 restart:
 	@echo "🔄 Restarting bot..."

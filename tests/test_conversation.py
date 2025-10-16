@@ -6,45 +6,47 @@ from src.conversation import ConversationManager
 from src.models import ChatMessage, ConversationKey
 
 
-@pytest.fixture
-def manager() -> ConversationManager:
-    return ConversationManager(max_history_messages=3)
-
-
-def test_add_message(manager: ConversationManager) -> None:
+@pytest.mark.asyncio
+async def test_add_message(conversation_manager: ConversationManager) -> None:
     """Добавление сообщения в историю"""
     key = ConversationKey(chat_id=1, user_id=1)
     msg = ChatMessage(role="user", content="test")
 
-    manager.add_message(key, msg)
+    await conversation_manager.add_message(key, msg)
 
-    assert key in manager.conversations
-    assert len(manager.conversations[key]) == 1
-    assert manager.conversations[key][0] == msg
+    # Проверяем через get_history
+    history = await conversation_manager.get_history(key, "system")
+    user_messages = [m for m in history if m.role == "user"]
+    assert len(user_messages) == 1
+    assert user_messages[0].content == "test"
 
 
-def test_get_history_with_system_prompt(manager: ConversationManager) -> None:
+@pytest.mark.asyncio
+async def test_get_history_with_system_prompt(
+    conversation_manager: ConversationManager,
+) -> None:
     """История должна включать system prompt"""
-    key = ConversationKey(chat_id=1, user_id=1)
+    key = ConversationKey(chat_id=2, user_id=2)
     system_prompt = "You are helpful assistant"
 
-    history = manager.get_history(key, system_prompt)
+    history = await conversation_manager.get_history(key, system_prompt)
 
     assert len(history) == 1
     assert history[0].role == "system"
     assert history[0].content == system_prompt
 
 
-def test_history_limit(manager: ConversationManager) -> None:
+@pytest.mark.asyncio
+async def test_history_limit(conversation_manager: ConversationManager) -> None:
     """История должна ограничиваться max_history_messages"""
-    key = ConversationKey(chat_id=1, user_id=1)
+    key = ConversationKey(chat_id=3, user_id=3)
     system_prompt = "test"
 
     # Добавляем 5 сообщений (limit = 3)
     for i in range(5):
-        manager.add_message(key, ChatMessage(role="user", content=f"msg{i}"))
+        await conversation_manager.add_message(key, ChatMessage(role="user", content=f"msg{i}"))
 
-    history = manager.get_history(key, system_prompt)
+    history = await conversation_manager.get_history(key, system_prompt)
 
     # system + 3 последних сообщения
     expected_length = 1 + 3  # system prompt + max_history_messages
@@ -54,27 +56,43 @@ def test_history_limit(manager: ConversationManager) -> None:
     assert history[1].content == "msg2"  # 3-е с конца
 
 
-def test_clear_history(manager: ConversationManager) -> None:
-    """Очистка истории диалога"""
-    key = ConversationKey(chat_id=1, user_id=1)
-    manager.add_message(key, ChatMessage(role="user", content="test"))
+@pytest.mark.asyncio
+async def test_clear_history(conversation_manager: ConversationManager) -> None:
+    """Очистка истории диалога (soft delete)"""
+    key = ConversationKey(chat_id=4, user_id=4)
+    await conversation_manager.add_message(key, ChatMessage(role="user", content="test"))
 
-    assert key in manager.conversations
+    # Проверяем, что сообщение есть
+    history_before = await conversation_manager.get_history(key, "system")
+    expected_messages = 2  # system + user message
+    assert len(history_before) == expected_messages
 
-    manager.clear_history(key)
+    # Очищаем историю
+    await conversation_manager.clear_history(key)
 
-    assert key not in manager.conversations
+    # Проверяем, что история пуста (soft delete)
+    history_after = await conversation_manager.get_history(key, "system")
+    # После clear должен остаться только новый system prompt
+    assert len(history_after) == 1
+    assert history_after[0].role == "system"
 
 
-def test_multiple_conversations(manager: ConversationManager) -> None:
+@pytest.mark.asyncio
+async def test_multiple_conversations(conversation_manager: ConversationManager) -> None:
     """Разные пользователи имеют разные истории"""
-    key1 = ConversationKey(chat_id=1, user_id=1)
-    key2 = ConversationKey(chat_id=1, user_id=2)
+    key1 = ConversationKey(chat_id=5, user_id=5)
+    key2 = ConversationKey(chat_id=5, user_id=6)
 
-    manager.add_message(key1, ChatMessage(role="user", content="user1"))
-    manager.add_message(key2, ChatMessage(role="user", content="user2"))
+    await conversation_manager.add_message(key1, ChatMessage(role="user", content="user1"))
+    await conversation_manager.add_message(key2, ChatMessage(role="user", content="user2"))
 
-    assert len(manager.conversations[key1]) == 1
-    assert len(manager.conversations[key2]) == 1
-    assert manager.conversations[key1][0].content == "user1"
-    assert manager.conversations[key2][0].content == "user2"
+    history1 = await conversation_manager.get_history(key1, "system")
+    history2 = await conversation_manager.get_history(key2, "system")
+
+    user1_messages = [m for m in history1 if m.role == "user"]
+    user2_messages = [m for m in history2 if m.role == "user"]
+
+    assert len(user1_messages) == 1
+    assert len(user2_messages) == 1
+    assert user1_messages[0].content == "user1"
+    assert user2_messages[0].content == "user2"

@@ -46,7 +46,7 @@ async def cmd_clear(message: Message, conversation_manager: ConversationManager)
     key = conversation_manager.get_conversation_key(
         chat_id=message.chat.id, user_id=message.from_user.id
     )
-    conversation_manager.clear_history(key)
+    await conversation_manager.clear_history(key)
     await message.answer("История диалога очищена")
 
 
@@ -79,17 +79,17 @@ async def handle_message(
 
         # Добавляем сообщение пользователя в историю
         user_message = ChatMessage(role="user", content=message.text)
-        conversation_manager.add_message(key, user_message)
+        await conversation_manager.add_message(key, user_message)
 
         # Получаем историю с system prompt
-        history = conversation_manager.get_history(key, system_prompt)
+        history = await conversation_manager.get_history(key, system_prompt)
 
         # Получение ответа от LLM
         response = await llm_client.get_response(history)
 
         # Добавляем ответ ассистента в историю
         assistant_message = ChatMessage(role="assistant", content=response)
-        conversation_manager.add_message(key, assistant_message)
+        await conversation_manager.add_message(key, assistant_message)
 
         # Отправка ответа пользователю
         await message.answer(response)

@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: systech-aidd-postgres
+    environment:
+      POSTGRES_USER: aidd_user
+      POSTGRES_PASSWORD: aidd_password
+      POSTGRES_DB: aidd_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aidd_user -d aidd_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    command: uv run alembic upgrade head
+    volumes:
+      - .:/app
+    working_dir: /app
+
+volumes:
+  postgres_data:
+

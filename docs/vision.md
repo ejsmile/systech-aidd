@@ -24,7 +24,11 @@
 - **pytest-cov** - измерение покрытия кода тестами
 
 ### Хранение данных
-- История диалогов хранится в оперативной памяти (без персистентности)
+- **PostgreSQL** - персистентное хранение истории диалогов
+- **SQLAlchemy 2.x (async)** - ORM для работы с БД
+- **Alembic** - система миграций
+- **asyncpg** - асинхронный драйвер PostgreSQL
+- **testcontainers** - изоляция тестов с реальной БД
 
 ## 2. Принцип разработки
 
@@ -55,7 +59,10 @@ systech-aidd-my/
 │   ├── llm_client.py      # Класс LLMClient - работа с OpenRouter
 │   ├── conversation.py    # Класс ConversationManager - управление историей
 │   ├── models.py          # Классы данных: ConversationKey, ChatMessage, Role
-│   └── config.py          # Класс Config - конфигурация
+│   ├── config.py          # Класс Config - конфигурация
+│   ├── database.py        # Класс Database - управление подключением к БД
+│   ├── db_models.py       # SQLAlchemy модели (Message)
+│   └── repository.py      # MessageRepository - слой доступа к данным
 ├── prompts/               # Файлы системных промптов
 │   └── system.txt         # Системный промпт (роль ассистента)
 ├── tests/                 # Автоматизированные тесты
@@ -66,11 +73,16 @@ systech-aidd-my/
 │   ├── test_llm_client.py    # Тесты LLMClient
 │   ├── test_config.py        # Тесты конфигурации
 │   └── test_integration.py   # Интеграционные тесты
-├── docs/                  # Документация
+├── alembic/              # Миграции базы данных
+│   ├── versions/         # Файлы миграций
+│   └── env.py            # Настройка Alembic
+├── docs/                 # Документация
 │   ├── idea.md
 │   └── vision.md
-├── .env.example           # Пример конфигурации
+├── .env.example          # Пример конфигурации
 ├── .gitignore
+├── alembic.ini           # Конфигурация Alembic
+├── docker-compose.yml    # PostgreSQL контейнер
 ├── Makefile              # Команды для сборки, запуска и тестирования
 ├── pyproject.toml        # Конфигурация проекта, зависимостей и инструментов
 ├── uv.lock               # Lockfile с точными версиями зависимостей
@@ -80,13 +92,16 @@ systech-aidd-my/
 ### Описание ключевых файлов
 
 **Исходный код:**
-- **main.py** - запуск бота, связывание компонентов, загрузка системного промпта (с fallback на дефолт)
+- **main.py** - запуск бота, инициализация БД, связывание компонентов, загрузка системного промпта
 - **bot.py** - создание и настройка aiogram Bot и Dispatcher
 - **handlers.py** - обработка входящих сообщений и команд из Telegram (`/start`, `/help`, `/clear`, `/role`)
 - **llm_client.py** - отправка запросов к LLM через OpenRouter
-- **conversation.py** - хранение истории диалога в памяти
+- **conversation.py** - управление историей диалога через MessageRepository
 - **models.py** - классы данных (ConversationKey, ChatMessage, Role)
 - **config.py** - загрузка и валидация конфигурации
+- **database.py** - управление подключением к PostgreSQL
+- **db_models.py** - SQLAlchemy модели (Message с soft delete)
+- **repository.py** - MessageRepository для работы с БД
 
 **Промпты:**
 - **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)
@@ -118,6 +133,9 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "alembic>=1.13.0",
+    "asyncpg>=0.29.0",
 ]
 
 [project.optional-dependencies]
@@ -127,6 +145,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0.0",
+    "testcontainers>=4.0.0",
 ]
 
 [tool.ruff]
@@ -168,7 +187,9 @@ Telegram User
       ↓
 [ConversationManager] (conversation.py) ←→ [LLMClient] (llm_client.py)
       ↓                                            ↓
-История в памяти                          OpenRouter API
+[MessageRepository] (repository.py)       OpenRouter API
+      ↓
+[PostgreSQL Database]
 ```
 
 ### Поток обработки сообщения
@@ -183,11 +204,14 @@ Telegram User
 9. **MessageHandler** отправляет ответ пользователю через Bot
 
 ### Ответственности классов
-- **Config** - хранит конфигурацию (токены, URL, параметры LLM, путь к файлу промпта)
+- **Config** - хранит конфигурацию (токены, URL, параметры LLM, путь к файлу промпта, database_url)
 - **Bot** - обертка над aiogram Bot + Dispatcher, регистрация handlers
 - **MessageHandler** - обработка команд (`/start`, `/help`, `/clear`, `/role`) и текстовых сообщений
-- **ConversationManager** - управление историей диалогов (dict: ConversationKey → list[ChatMessage])
+- **ConversationManager** - управление историей диалогов через MessageRepository
 - **LLMClient** - асинхронные запросы к OpenRouter API
+- **Database** - управление async engine и session factory для PostgreSQL
+- **Message (db_models)** - SQLAlchemy модель сообщения с soft delete
+- **MessageRepository** - CRUD операции с сообщениями (add_message, get_history, soft_delete_history)
 - **ConversationKey** - immutable ключ для идентификации диалога (chat_id + user_id)
 - **ChatMessage** - структура сообщения (role + content), формат совместим с OpenAI API
 - **Role** - enum для валидации ролей (system, user, assistant)
@@ -198,6 +222,7 @@ Telegram User
 ```python
 telegram_token: str          # Токен Telegram бота
 openrouter_api_key: str      # API ключ OpenRouter
+database_url: str            # URL подключения к PostgreSQL (по умолчанию: "postgresql+asyncpg://aidd_user:aidd_password@localhost:5432/aidd_db")
 openrouter_base_url: str     # URL OpenRouter (по умолчанию: "https://openrouter.ai/api/v1")
 model_name: str              # Название модели (например: "openai/gpt-oss-20b:free")
 system_prompt_file: str      # Путь к файлу с системным промптом (по умолчанию: "prompts/system.txt")
@@ -207,10 +232,10 @@ temperature: float           # Температура генерации LLM (п
 log_level: str               # Уровень логирования (по умолчанию: "INFO")
 ```
 
-### История диалога (ConversationManager)
+### История диалога (База данных)
 ```python
 # Классы данных:
-@dataclass(frozen=True)  # frozen=True для использования как ключ словаря
+@dataclass(frozen=True)
 class ConversationKey:
     chat_id: int
     user_id: int
@@ -223,19 +248,32 @@ class Role(str, Enum):
 
 @dataclass
 class ChatMessage:
-    role: Literal["system", "user", "assistant"]  # Type-safe валидация роли
+    role: Literal["system", "user", "assistant"]
     content: str
     
     def to_dict(self) -> dict[str, str]:
         """Конвертация в формат OpenAI API"""
         return {"role": self.role, "content": self.content}
 
-# Структура в памяти:
-conversations: dict[ConversationKey, list[ChatMessage]]
+# SQLAlchemy модель:
+class Message(Base):
+    id: int (BIGSERIAL PRIMARY KEY)
+    chat_id: int (BIGINT NOT NULL)
+    user_id: int (BIGINT NOT NULL)
+    role: str (VARCHAR(20) NOT NULL)
+    content: str (TEXT NOT NULL)
+    content_length: int (INTEGER NOT NULL)
+    created_at: datetime (TIMESTAMP NOT NULL DEFAULT NOW())
+    deleted_at: datetime | None (TIMESTAMP NULL)  # Soft delete
 
-# Ключ: ConversationKey(chat_id, user_id) - для учета переподключений
-# Значение: список сообщений в формате OpenAI API
-# Ограничение: последние 20 сообщений (+ system prompt)
+# Индексы:
+# - idx_messages_lookup: (chat_id, user_id, deleted_at, created_at DESC)
+# - idx_messages_created: (created_at DESC)
+
+# Хранение: PostgreSQL
+# Схема: Денормализованная (одна таблица messages)
+# Стратегия удаления: Soft delete (deleted_at IS NULL для активных)
+# Ограничение: последние 20 сообщений (+ system prompt) через LIMIT в SQL
 ```
 
 ### Встроенные типы
@@ -315,10 +353,13 @@ conversations: dict[ConversationKey, list[ChatMessage]]
 TELEGRAM_TOKEN=your_telegram_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
+# База данных
+DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5432/aidd_db
+
 # Необязательные (с значениями по умолчанию)
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 MODEL_NAME=openai/gpt-oss-20b:free
-SYSTEM_PROMPT_FILE=prompts/system.txt  # Если файл не найден, используется дефолт
+SYSTEM_PROMPT_FILE=prompts/system.txt
 MAX_HISTORY_MESSAGES=20
 TEMPERATURE=0.7
 LOG_LEVEL=INFO
@@ -467,17 +508,26 @@ logger.error(f"LLM API error: {error}")
 
 ### Установка и запуск
 1. Создать виртуальное окружение: `uv venv`
-2. Установить зависимости: `uv pip install -e .` или `make install`
-3. Настроить `.env` файл (обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`)
-4. Запустить: `python src/main.py` или `make run`
+2. Установить зависимости: `uv pip install -e ".[dev]"` или `make install-dev`
+3. Настроить `.env` файл (обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`, `DATABASE_URL`)
+4. Запустить PostgreSQL: `make db-up`
+5. Применить миграции: `make db-migrate`
+6. Запустить бота: `make run`
 
 ### Команды Makefile
 
 **Запуск:**
 - `make install` - установить зависимости
-- `make install-dev` - установить с dev-зависимостями (ruff, mypy, pytest)
+- `make install-dev` - установить с dev-зависимостями (ruff, mypy, pytest, testcontainers)
 - `make run` - запустить бота
 - `make dev` - запустить в режиме разработки (LOG_LEVEL=DEBUG)
+
+**База данных:**
+- `make db-up` - запустить PostgreSQL через Docker
+- `make db-down` - остановить PostgreSQL
+- `make db-migrate` - применить миграции
+- `make db-revision` - создать новую миграцию (m="description")
+- `make db-reset` - полный сброс БД и повторное применение миграций
 
 **Качество кода:**
 - `make format` - форматировать код (ruff format)
@@ -486,9 +536,8 @@ logger.error(f"LLM API error: {error}")
 - `make quality` - полная проверка (format + lint + typecheck)
 
 **Тестирование:**
-- `make test` - запустить тесты
+- `make test` - запустить тесты (с testcontainers)
 - `make test-cov` - тесты с отчетом о покрытии
-- `make test-watch` - запустить тесты в режиме watch
 
 **Прочее:**
 - `make clean` - очистить временные файлы
