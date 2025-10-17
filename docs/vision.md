@@ -96,7 +96,8 @@ systech-aidd-my/
 │       ├── chat_handler.py       # WebChatHandler - обработка чата
 │       ├── text2sql_handler.py   # Text2SQLHandler - Text2SQL запросы
 │       ├── stat_collector.py     # Protocol для статистики
-│       └── mock_stat_collector.py # Mock реализация
+│       ├── real_stat_collector.py # Real реализация (PostgreSQL)
+│       └── mock_stat_collector.py # Mock реализация (для разработки frontend)
 ├── frontend/             # Frontend исходный код
 │   ├── docs/             # Frontend документация
 │   │   ├── front-vision.md    # Видение frontend приложения
@@ -164,6 +165,7 @@ systech-aidd-my/
 │   ├── test_chat_api.py         # Тесты чат API (WebChatHandler)
 │   ├── test_text2sql_handler.py # Тесты Text2SQL handler
 │   ├── test_web_chat_handler.py # Тесты WebChatHandler
+│   ├── test_real_stat_collector.py # Тесты RealStatCollector (testcontainers)
 │   └── test_mock_stat_collector.py # Тесты MockStatCollector
 ├── alembic/              # Миграции базы данных
 │   ├── versions/         # Файлы миграций
@@ -241,7 +243,7 @@ systech-aidd-my/
 **API (FastAPI):**
 - **api/main.py** - точка входа для API сервера (uvicorn)
 - **api/app.py** - FastAPI приложение с endpoints и CORS:
-  - GET /api/v1/statistics - получение статистики
+  - GET /api/v1/statistics - получение статистики из PostgreSQL
   - POST /api/v1/chat/message - отправка сообщения в чат
   - GET /api/v1/chat/history/{user_id} - получение истории чата
   - DELETE /api/v1/chat/history/{user_id} - очистка истории
@@ -250,7 +252,8 @@ systech-aidd-my/
 - **api/chat_handler.py** - WebChatHandler для обработки веб-чата (аналог Telegram handlers)
 - **api/text2sql_handler.py** - Text2SQLHandler для выполнения Text2SQL запросов
 - **api/stat_collector.py** - Protocol интерфейс для сборщика статистики
-- **api/mock_stat_collector.py** - Mock реализация для разработки frontend
+- **api/real_stat_collector.py** - Real реализация на основе PostgreSQL (используется в production)
+- **api/mock_stat_collector.py** - Mock реализация для разработки frontend без БД
 
 **Frontend (React + TypeScript):**
 - **App.tsx** - главный компонент с роутингом, sidebar навигацией и FloatingChat
@@ -298,6 +301,7 @@ systech-aidd-my/
 - **test_chat_api.py** - тесты чат API endpoints
 - **test_web_chat_handler.py** - тесты WebChatHandler
 - **test_text2sql_handler.py** - тесты Text2SQLHandler
+- **test_real_stat_collector.py** - тесты RealStatCollector с testcontainers и PostgreSQL
 - **test_mock_stat_collector.py** - тесты MockStatCollector
 
 **Frontend тестирование:**
@@ -413,6 +417,11 @@ Telegram User
 - **ChatMessage** - структура сообщения (role + content), формат совместим с OpenAI API
 - **UserData** - структура данных пользователя из Telegram (user_id, username, first_name, last_name)
 - **Role** - enum для валидации ролей (system, user, assistant)
+- **StatCollectorProtocol** - Protocol интерфейс для сборщиков статистики
+- **RealStatCollector** - сборщик статистики из PostgreSQL (production)
+- **MockStatCollector** - сборщик фейковых данных (разработка frontend)
+- **WebChatHandler** - обработчик веб-чата для API
+- **Text2SQLHandler** - обработчик Text2SQL запросов для админ режима
 
 ## 5. Модель данных
 

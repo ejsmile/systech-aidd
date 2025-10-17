@@ -7,7 +7,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.chat_handler import WebChatHandler
-from src.api.mock_stat_collector import MockStatCollector
 from src.api.models import (
     ChatHistoryResponse,
     ChatMessageRequest,
@@ -17,6 +16,7 @@ from src.api.models import (
     Text2SQLRequest,
     Text2SQLResponse,
 )
+from src.api.real_stat_collector import RealStatCollector
 from src.api.stat_collector import StatCollectorProtocol
 from src.api.text2sql_handler import Text2SQLHandler
 from src.config import Config
@@ -48,19 +48,22 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Глобальный экземпляр сборщика статистики (Mock версия)
-stat_collector: StatCollectorProtocol = MockStatCollector(
-    num_users=30, num_messages=400, days_back=30
-)
-
-# Инициализация зависимостей для чата
+# Инициализация зависимостей
 config = Config()  # type: ignore[call-arg]
 
 # Try to initialize database, but handle gracefully if it fails
 database: Database | None = None
+stat_collector: StatCollectorProtocol | None = None
 chat_handler: WebChatHandler | None = None
 try:
     database = Database(config.database_url)
+
+    # Инициализация Real StatCollector
+    stat_collector = RealStatCollector(
+        session_factory=database.get_session,
+        active_users_days=30,  # Период для активных пользователей
+    )
+
     llm_client = LLMClient(config)
     conversation_manager = ConversationManager(
         session_factory=database.get_session,
@@ -75,7 +78,7 @@ except Exception as e:
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.warning(f"Failed to initialize database: {e}. Chat endpoints will not work.")
+    logger.warning(f"Failed to initialize database: {e}. API endpoints may not work.")
 
 # Load Text2SQL prompt
 try:
@@ -120,6 +123,8 @@ async def get_statistics(
     Returns:
         StatisticsResponse: Статистика по пользователям и сообщениям
     """
+    if stat_collector is None:
+        raise RuntimeError("Statistics collector not initialized")
     return await stat_collector.get_statistics(start_date=start_date, end_date=end_date)
 
 

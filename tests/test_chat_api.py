@@ -2,16 +2,11 @@ from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from src.api.app import app
 
-
-@pytest.fixture
-def client() -> TestClient:
-    """Fixture to provide test client for FastAPI app."""
-    return TestClient(app)
+# Unused sync client fixture removed - all tests now use async_client
 
 
 @pytest.fixture
@@ -76,58 +71,67 @@ async def async_client(
         await database.disconnect()
 
 
-def test_chat_message_success(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_message_success(async_client: AsyncClient) -> None:
     """Test successful chat message endpoint."""
-    payload = {"user_id": "test-user-1", "message": "Hello!"}
+    # Mock LLM response
+    with patch("src.llm_client.LLMClient.get_response", new_callable=AsyncMock) as mock_llm:
+        mock_llm.return_value = "Test response from bot"
 
-    response = client.post("/api/v1/chat/message", json=payload)
+        payload = {"user_id": "test-user-1", "message": "Hello!"}
 
-    # Should return 200 with valid response
-    assert response.status_code == 200
-    data = response.json()
-    assert "response" in data
-    assert "message_id" in data
-    assert isinstance(data["response"], str)
-    assert isinstance(data["message_id"], int)
+        response = await async_client.post("/api/v1/chat/message", json=payload)
+
+        # Should return 200 with valid response
+        assert response.status_code == 200
+        data = response.json()
+        assert "response" in data
+        assert "message_id" in data
+        assert isinstance(data["response"], str)
+        assert isinstance(data["message_id"], int)
 
 
-def test_chat_message_empty_message(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_message_empty_message(async_client: AsyncClient) -> None:
     """Test chat message with empty message (validation error)."""
     payload = {"user_id": "test-user-1", "message": ""}
 
-    response = client.post("/api/v1/chat/message", json=payload)
+    response = await async_client.post("/api/v1/chat/message", json=payload)
 
     # Should return 422 (validation error)
     assert response.status_code == 422
 
 
-def test_chat_message_missing_user_id(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_message_missing_user_id(async_client: AsyncClient) -> None:
     """Test chat message with missing user_id (validation error)."""
     payload = {"message": "Hello!"}
 
-    response = client.post("/api/v1/chat/message", json=payload)
+    response = await async_client.post("/api/v1/chat/message", json=payload)
 
     # Should return 422 (validation error)
     assert response.status_code == 422
 
 
-def test_chat_message_missing_message(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_message_missing_message(async_client: AsyncClient) -> None:
     """Test chat message with missing message (validation error)."""
     payload = {"user_id": "test-user-1"}
 
-    response = client.post("/api/v1/chat/message", json=payload)
+    response = await async_client.post("/api/v1/chat/message", json=payload)
 
     # Should return 422 (validation error)
     assert response.status_code == 422
 
 
-def test_chat_message_too_long(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_message_too_long(async_client: AsyncClient) -> None:
     """Test chat message that exceeds max length."""
     long_message = "x" * 5000  # Exceeds 4000 char limit
 
     payload = {"user_id": "test-user-1", "message": long_message}
 
-    response = client.post("/api/v1/chat/message", json=payload)
+    response = await async_client.post("/api/v1/chat/message", json=payload)
 
     # Should return 422 (validation error)
     assert response.status_code == 422
@@ -200,11 +204,11 @@ async def test_clear_chat_history_nonexistent_user(async_client: AsyncClient) ->
     assert data["success"] is True
 
 
-def test_chat_endpoints_cors_headers(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_chat_endpoints_cors_headers(async_client: AsyncClient) -> None:
     """Test that CORS headers are present for OPTIONS request."""
-    # TestClient doesn't automatically add CORS headers for regular requests
-    # We need to test OPTIONS preflight request
-    response = client.options(
+    # Test OPTIONS preflight request
+    response = await async_client.options(
         "/api/v1/statistics",
         headers={
             "Origin": "http://localhost:5173",
@@ -304,11 +308,12 @@ async def test_admin_query_empty_query(async_client: AsyncClient) -> None:
     assert "empty" in data["detail"].lower()
 
 
-def test_admin_query_missing_query(client: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_admin_query_missing_query(async_client: AsyncClient) -> None:
     """Test admin query with missing query field (validation error)."""
     payload = {}
 
-    response = client.post("/api/v1/admin/query", json=payload)
+    response = await async_client.post("/api/v1/admin/query", json=payload)
 
     # Should return 422 (validation error)
     assert response.status_code == 422

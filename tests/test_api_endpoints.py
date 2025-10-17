@@ -1,15 +1,22 @@
 """Интеграционные тесты для API endpoints."""
 
-from fastapi.testclient import TestClient
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 from src.api.app import app
 
-client = TestClient(app)
+
+@pytest.fixture
+async def async_client() -> AsyncClient:
+    """Async client для тестирования API."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
 
 
-def test_root_endpoint() -> None:
+@pytest.mark.asyncio
+async def test_root_endpoint(async_client: AsyncClient) -> None:
     """Тест корневого endpoint."""
-    response = client.get("/")
+    response = await async_client.get("/")
     assert response.status_code == 200
     data = response.json()
     assert "message" in data
@@ -17,17 +24,19 @@ def test_root_endpoint() -> None:
     assert data["version"] == "0.1.0"
 
 
-def test_health_endpoint() -> None:
+@pytest.mark.asyncio
+async def test_health_endpoint(async_client: AsyncClient) -> None:
     """Тест health check endpoint."""
-    response = client.get("/health")
+    response = await async_client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
 
 
-def test_statistics_endpoint() -> None:
+@pytest.mark.asyncio
+async def test_statistics_endpoint(async_client: AsyncClient) -> None:
     """Тест основного endpoint статистики."""
-    response = client.get("/api/v1/statistics")
+    response = await async_client.get("/api/v1/statistics")
     assert response.status_code == 200
 
     data = response.json()
@@ -48,43 +57,45 @@ def test_statistics_endpoint() -> None:
     assert isinstance(data["messages_by_date"], list)
     assert isinstance(data["top_users"], list)
 
-    # Проверка значений
-    assert data["total_users"] > 0
-    assert data["active_users"] > 0
-    assert data["total_messages"] > 0
+    # Проверка значений (может быть 0 если БД пустая)
+    assert data["total_users"] >= 0
+    assert data["active_users"] >= 0
+    assert data["total_messages"] >= 0
     assert data["avg_messages_per_user"] >= 0
 
 
-def test_statistics_endpoint_messages_by_date_structure() -> None:
+@pytest.mark.asyncio
+async def test_statistics_endpoint_messages_by_date_structure(async_client: AsyncClient) -> None:
     """Тест структуры messages_by_date."""
-    response = client.get("/api/v1/statistics")
+    response = await async_client.get("/api/v1/statistics")
     assert response.status_code == 200
 
     data = response.json()
     messages_by_date = data["messages_by_date"]
 
-    assert len(messages_by_date) > 0
+    # Может быть пустым если нет данных в БД
+    if len(messages_by_date) > 0:
+        # Проверка структуры каждого элемента
+        for item in messages_by_date:
+            assert "date" in item
+            assert "count" in item
+            assert isinstance(item["count"], int)
+            assert item["count"] >= 0
 
-    # Проверка структуры каждого элемента
-    for item in messages_by_date:
-        assert "date" in item
-        assert "count" in item
-        assert isinstance(item["count"], int)
-        assert item["count"] >= 0
 
-
-def test_statistics_endpoint_top_users_structure() -> None:
+@pytest.mark.asyncio
+async def test_statistics_endpoint_top_users_structure(async_client: AsyncClient) -> None:
     """Тест структуры top_users."""
-    response = client.get("/api/v1/statistics")
+    response = await async_client.get("/api/v1/statistics")
     assert response.status_code == 200
 
     data = response.json()
     top_users = data["top_users"]
 
-    assert len(top_users) > 0
+    # Может быть пустым если нет пользователей в БД
     assert len(top_users) <= 10  # Не больше 10
 
-    # Проверка структуры каждого элемента
+    # Проверка структуры каждого элемента если есть
     for user in top_users:
         assert "user_id" in user
         assert "username" in user  # Может быть null
@@ -94,9 +105,10 @@ def test_statistics_endpoint_top_users_structure() -> None:
         assert user["message_count"] > 0
 
 
-def test_statistics_endpoint_with_date_params() -> None:
+@pytest.mark.asyncio
+async def test_statistics_endpoint_with_date_params(async_client: AsyncClient) -> None:
     """Тест endpoint с параметрами дат."""
-    response = client.get(
+    response = await async_client.get(
         "/api/v1/statistics",
         params={
             "start_date": "2025-09-01T00:00:00",
@@ -107,12 +119,13 @@ def test_statistics_endpoint_with_date_params() -> None:
 
     data = response.json()
     assert "total_users" in data
-    assert data["total_users"] > 0
+    assert data["total_users"] >= 0
 
 
-def test_statistics_endpoint_cors_headers() -> None:
+@pytest.mark.asyncio
+async def test_statistics_endpoint_cors_headers(async_client: AsyncClient) -> None:
     """Тест что CORS headers присутствуют при cross-origin запросе."""
-    response = client.get(
+    response = await async_client.get(
         "/api/v1/statistics",
         headers={"Origin": "http://localhost:5173"},
     )
@@ -120,9 +133,10 @@ def test_statistics_endpoint_cors_headers() -> None:
     assert "access-control-allow-origin" in response.headers
 
 
-def test_openapi_docs() -> None:
+@pytest.mark.asyncio
+async def test_openapi_docs(async_client: AsyncClient) -> None:
     """Тест что OpenAPI документация доступна."""
-    response = client.get("/openapi.json")
+    response = await async_client.get("/openapi.json")
     assert response.status_code == 200
 
     openapi = response.json()
@@ -131,10 +145,11 @@ def test_openapi_docs() -> None:
     assert openapi["info"]["title"] == "AIDD API"
 
 
-def test_statistics_consistency() -> None:
+@pytest.mark.asyncio
+async def test_statistics_consistency(async_client: AsyncClient) -> None:
     """Тест что данные консистентны между вызовами."""
-    response1 = client.get("/api/v1/statistics")
-    response2 = client.get("/api/v1/statistics")
+    response1 = await async_client.get("/api/v1/statistics")
+    response2 = await async_client.get("/api/v1/statistics")
 
     assert response1.status_code == 200
     assert response2.status_code == 200
@@ -142,7 +157,7 @@ def test_statistics_consistency() -> None:
     data1 = response1.json()
     data2 = response2.json()
 
-    # Mock данные должны быть идентичными
+    # Данные должны быть идентичными (БД не меняется между запросами)
     assert data1["total_users"] == data2["total_users"]
     assert data1["active_users"] == data2["active_users"]
     assert data1["total_messages"] == data2["total_messages"]

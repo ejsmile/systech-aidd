@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator, Callable
 import pytest
 from alembic.config import Config as AlembicConfig
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
@@ -91,6 +92,23 @@ async def db_session(database: Database) -> AsyncGenerator[AsyncSession, None]:
     """Создать сессию для работы с БД в тестах"""
     async for session in database.get_session():
         yield session
+
+
+@pytest.fixture
+async def clean_db_session(database: Database) -> AsyncGenerator[AsyncSession, None]:
+    """Создать изолированную сессию с очисткой БД до и после теста"""
+    async for session in database.get_session():
+        # Очистить таблицы перед тестом
+        await session.execute(text("DELETE FROM messages"))
+        await session.execute(text("DELETE FROM users"))
+        await session.commit()
+
+        yield session
+
+        # Очистить таблицы после теста
+        await session.execute(text("DELETE FROM messages"))
+        await session.execute(text("DELETE FROM users"))
+        await session.commit()
 
 
 @pytest.fixture

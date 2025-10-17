@@ -4,6 +4,9 @@ import logging
 
 import uvicorn
 
+# Импорт приложения для uvicorn
+from src.api.app import app  # noqa: F401
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
@@ -11,6 +14,9 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# Экспорт app для uvicorn
+__all__ = ["app"]
 
 
 def main() -> None:
