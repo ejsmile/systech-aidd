@@ -136,17 +136,25 @@ systech-aidd-my/
 │   ├── config.py         # Config - конфигурация
 │   └── api/              # FastAPI веб-интерфейс
 │       ├── main.py       # Точка входа для API сервера
-│       ├── app.py        # FastAPI приложение
+│       ├── app.py        # FastAPI приложение и endpoints
 │       ├── models.py     # Pydantic модели для API
+│       ├── chat_handler.py       # WebChatHandler для чата
+│       ├── text2sql_handler.py   # Text2SQLHandler для SQL запросов
 │       ├── stat_collector.py     # Protocol для статистики
 │       └── mock_stat_collector.py # Mock реализация
 ├── frontend/             # Frontend исходный код (React + TypeScript)
 │   ├── src/              # Исходный код приложения
 │   │   ├── components/   # Переиспользуемые компоненты
-│   │   ├── pages/        # Страницы (Dashboard, Chat)
+│   │   │   ├── FloatingChat.tsx       # Обертка floating чата
+│   │   │   ├── FloatingChatButton.tsx # Кнопка чата в правом нижнем углу
+│   │   │   ├── FloatingChatWindow.tsx # Окно чата
+│   │   │   ├── ui/       # Shadcn/ui компоненты (button, card, chat-input, etc.)
+│   │   │   └── ...       # Другие компоненты (MetricCard, Charts, etc.)
+│   │   ├── pages/        # Страницы (Dashboard)
 │   │   ├── api/          # API клиент для backend
 │   │   ├── types/        # TypeScript типы
-│   │   ├── hooks/        # Custom React hooks
+│   │   ├── hooks/        # Custom React hooks (use-textarea-resize)
+│   │   ├── contexts/     # React Context (ThemeContext)
 │   │   └── lib/          # Утилиты
 │   ├── docs/             # Frontend документация
 │   ├── package.json      # Зависимости и скрипты
@@ -183,6 +191,16 @@ systech-aidd-my/
 - **Shadcn/ui** - современные UI компоненты
 - **Recharts** - декларативные графики
 - **React Router** - клиентский роутинг
+
+**Возможности:**
+- **Floating AI Chat** - глобальный чат-помощник в правом нижнем углу
+  - Два режима: обычный (LLM) и админ (Text2SQL)
+  - Badge индикатор режима (AI/SQL)
+  - Адаптивный дизайн (desktop: floating окно, mobile: full screen)
+  - История диалогов с автоскроллом
+- **Dashboard Analytics** - визуализация статистики использования бота
+- **Dark/Light Theme** - поддержка темной и светлой темы
+- **Period Filtering** - фильтрация статистики по периодам
 
 ### Infrastructure
 - **Docker Compose** - локальная инфраструктура

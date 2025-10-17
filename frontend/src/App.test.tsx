@@ -23,7 +23,8 @@ describe('App', () => {
   it('renders navigation links', () => {
     renderWithThemeProvider()
     expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/💬 Chat/i)).toBeInTheDocument()
+    // FloatingChat button should be present
+    expect(screen.getByLabelText(/Open chat/i)).toBeInTheDocument()
   })
 
   it('renders messages chart', () => {

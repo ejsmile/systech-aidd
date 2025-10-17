@@ -91,8 +91,10 @@ systech-aidd-my/
 │   └── api/               # FastAPI веб-интерфейс
 │       ├── __init__.py
 │       ├── main.py        # Точка входа для API сервера
-│       ├── app.py         # FastAPI приложение
+│       ├── app.py         # FastAPI приложение и endpoints
 │       ├── models.py      # Pydantic модели для API
+│       ├── chat_handler.py       # WebChatHandler - обработка чата
+│       ├── text2sql_handler.py   # Text2SQLHandler - Text2SQL запросы
 │       ├── stat_collector.py     # Protocol для статистики
 │       └── mock_stat_collector.py # Mock реализация
 ├── frontend/             # Frontend исходный код
@@ -101,15 +103,19 @@ systech-aidd-my/
 │   │   └── tech-stack.md      # Технологический стек
 │   ├── src/              # Исходный код приложения
 │   │   ├── components/   # Переиспользуемые компоненты
-│   │   │   ├── ui/       # Shadcn/ui компоненты (button, card, select, alert)
+│   │   │   ├── ui/       # Shadcn/ui компоненты (button, card, select, alert, chat-input, textarea)
 │   │   │   ├── ThemeToggle.tsx      # Переключатель темной/светлой темы
 │   │   │   ├── PeriodSelector.tsx   # Выбор периода для статистики
 │   │   │   ├── MetricCard.tsx       # Карточка метрики
 │   │   │   ├── MessagesByDateChart.tsx  # График сообщений по дням
-│   │   │   └── TopUsersTable.tsx    # Таблица топ пользователей
-│   │   ├── pages/        # Страницы (Dashboard, Chat)
-│   │   │   ├── Dashboard.tsx  # Дашборд с фильтрацией по периодам
-│   │   │   └── Chat.tsx       # Веб-чат с ботом
+│   │   │   ├── TopUsersTable.tsx    # Таблица топ пользователей
+│   │   │   ├── FloatingChat.tsx     # Обертка floating чата (логика + состояние)
+│   │   │   ├── FloatingChatButton.tsx  # Кнопка floating чата в правом нижнем углу
+│   │   │   ├── FloatingChatWindow.tsx  # Окно floating чата
+│   │   │   ├── ChatMessage.tsx      # Отображение сообщения в чате
+│   │   │   └── SQLResultDisplay.tsx # Отображение результатов SQL запросов
+│   │   ├── pages/        # Страницы
+│   │   │   └── Dashboard.tsx  # Дашборд с фильтрацией по периодам
 │   │   ├── contexts/     # React Context API
 │   │   │   └── ThemeContext.tsx     # Управление темой (dark/light)
 │   │   ├── api/          # API клиент для backend
@@ -120,6 +126,7 @@ systech-aidd-my/
 │   │   │   ├── statistics.ts  # Типы для статистики
 │   │   │   └── chat.ts        # Типы для чата
 │   │   ├── hooks/        # Custom React hooks
+│   │   │   └── use-textarea-resize.ts  # Hook для авто-ресайза textarea
 │   │   ├── lib/          # Утилиты
 │   │   │   └── utils.ts  # cn() для Tailwind
 │   │   ├── App.tsx       # Главный компонент с роутингом
@@ -137,7 +144,8 @@ systech-aidd-my/
 │   ├── eslint.config.js  # ESLint конфигурация
 │   └── components.json   # Shadcn/ui конфигурация
 ├── prompts/               # Файлы системных промптов
-│   └── system.txt         # Системный промпт (роль ассистента)
+│   ├── system.txt         # Системный промпт (роль ассистента)
+│   └── text2sql.txt       # Промпт для Text2SQL запросов
 ├── tests/                 # Backend автоматизированные тесты
 │   ├── __init__.py
 │   ├── conftest.py        # Общие fixtures
@@ -153,6 +161,9 @@ systech-aidd-my/
 │   ├── test_user_integration.py  # Интеграционные тесты пользователей
 │   ├── test_api_endpoints.py    # Тесты API endpoints
 │   ├── test_api_models.py       # Тесты API моделей
+│   ├── test_chat_api.py         # Тесты чат API (WebChatHandler)
+│   ├── test_text2sql_handler.py # Тесты Text2SQL handler
+│   ├── test_web_chat_handler.py # Тесты WebChatHandler
 │   └── test_mock_stat_collector.py # Тесты MockStatCollector
 ├── alembic/              # Миграции базы данных
 │   ├── versions/         # Файлы миграций
@@ -181,6 +192,17 @@ systech-aidd-my/
 ### Описание ключевых файлов
 
 **Frontend возможности:**
+- **Floating AI Chat** - глобальный чат-помощник:
+  - Floating кнопка в правом нижнем углу на всех страницах
+  - Badge индикатор режима (AI/SQL)
+  - Два режима работы:
+    - Обычный режим: общение с LLM-ассистентом
+    - Админ режим: Text2SQL запросы к базе данных
+  - Адаптивный дизайн (desktop: floating окно 400x600px, mobile: full screen)
+  - История диалогов с автоскроллом
+  - Авто-ресайз textarea при вводе
+  - Очистка истории
+  - Поддержка темной/светлой темы
 - **Dark/Light Theme** - полная поддержка темной и светлой темы:
   - Автоматическое определение системных предпочтений
   - Переключатель темы в UI (ThemeToggle)
@@ -197,7 +219,7 @@ systech-aidd-my/
   - TopUsersTable - таблица топ пользователей
   - Автообновление каждые 30 секунд
 - **Design System** - единая система дизайна:
-  - Shadcn/ui компоненты (button, card, select, alert)
+  - Shadcn/ui компоненты (button, card, select, alert, chat-input, textarea)
   - Tailwind CSS с настроенными design tokens
   - Semantic color tokens (primary, secondary, muted, accent, destructive, card, popover)
   - Chart colors (chart-1 до chart-5)
@@ -218,25 +240,37 @@ systech-aidd-my/
 
 **API (FastAPI):**
 - **api/main.py** - точка входа для API сервера (uvicorn)
-- **api/app.py** - FastAPI приложение с endpoints и CORS
+- **api/app.py** - FastAPI приложение с endpoints и CORS:
+  - GET /api/v1/statistics - получение статистики
+  - POST /api/v1/chat/message - отправка сообщения в чат
+  - GET /api/v1/chat/history/{user_id} - получение истории чата
+  - DELETE /api/v1/chat/history/{user_id} - очистка истории
+  - POST /api/v1/admin/query - Text2SQL запросы (админ режим)
 - **api/models.py** - Pydantic модели для валидации API запросов/ответов
+- **api/chat_handler.py** - WebChatHandler для обработки веб-чата (аналог Telegram handlers)
+- **api/text2sql_handler.py** - Text2SQLHandler для выполнения Text2SQL запросов
 - **api/stat_collector.py** - Protocol интерфейс для сборщика статистики
 - **api/mock_stat_collector.py** - Mock реализация для разработки frontend
 
 **Frontend (React + TypeScript):**
-- **App.tsx** - главный компонент с роутингом и sidebar навигацией
+- **App.tsx** - главный компонент с роутингом, sidebar навигацией и FloatingChat
 - **main.tsx** - entry point с ThemeProvider для поддержки тем
 - **pages/Dashboard.tsx** - страница дашборда со статистикой и фильтрацией по периодам
-- **pages/Chat.tsx** - страница веб-чата с ботом
 - **contexts/ThemeContext.tsx** - управление dark/light темой, сохранение в localStorage
+- **components/FloatingChat.tsx** - обертка floating чата с логикой и состоянием
+- **components/FloatingChatButton.tsx** - кнопка чата в правом нижнем углу с badge индикатором
+- **components/FloatingChatWindow.tsx** - окно чата с адаптивным дизайном
+- **components/ChatMessage.tsx** - отображение сообщения в чате
+- **components/SQLResultDisplay.tsx** - отображение результатов SQL запросов
 - **components/ThemeToggle.tsx** - переключатель темы (Moon/Sun иконки)
 - **components/PeriodSelector.tsx** - выбор периода фильтрации (неделя/месяц/весь период)
 - **components/MessagesByDateChart.tsx** - график динамики сообщений
 - **components/TopUsersTable.tsx** - таблица топ пользователей
 - **components/MetricCard.tsx** - карточка для отображения метрики
-- **components/ui/** - Shadcn/ui компоненты (button, card, select, alert)
+- **components/ui/** - Shadcn/ui компоненты (button, card, select, alert, chat-input, textarea)
+- **hooks/use-textarea-resize.ts** - hook для авто-ресайза textarea
 - **api/client.ts** - базовый HTTP клиент для запросов к backend API
-- **api/chat.ts** - методы для работы с чатом
+- **api/chat.ts** - методы для работы с чатом (sendMessage, getChatHistory, clearChatHistory, executeAdminQuery)
 - **api/statistics.ts** - методы для получения статистики
 - **types/statistics.ts** - TypeScript типы для API моделей статистики
 - **types/chat.ts** - TypeScript типы для чата
@@ -245,6 +279,7 @@ systech-aidd-my/
 
 **Промпты:**
 - **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)
+- **prompts/text2sql.txt** - промпт для генерации SQL запросов и интерпретации результатов (для админ режима чата)
 
 **Backend тестирование:**
 - **conftest.py** - общие fixtures для переиспользования (testcontainers, session factory)
@@ -254,12 +289,15 @@ systech-aidd-my/
 - **test_config.py** - тесты валидации конфигурации
 - **test_repository.py** - unit-тесты MessageRepository
 - **test_user_repository.py** - unit-тесты UserRepository
-- **test_handlers.py** - unit-тесты обработчиков
+- **test_handlers.py** - unit-тесты обработчиков Telegram
 - **test_database.py** - тесты Database (connection pooling, sessions)
 - **test_integration.py** - интеграционные тесты полного цикла
 - **test_user_integration.py** - интеграционные тесты работы с пользователями
 - **test_api_endpoints.py** - тесты API endpoints (FastAPI)
 - **test_api_models.py** - тесты валидации API моделей
+- **test_chat_api.py** - тесты чат API endpoints
+- **test_web_chat_handler.py** - тесты WebChatHandler
+- **test_text2sql_handler.py** - тесты Text2SQLHandler
 - **test_mock_stat_collector.py** - тесты MockStatCollector
 
 **Frontend тестирование:**
