@@ -2,26 +2,47 @@
 
 ## 1. Технологии
 
-### Основной стек
+### Backend Stack
 - **Python 3.11+** - язык программирования
 - **uv** - управление зависимостями и виртуальным окружением
 - **aiogram 3.x** - асинхронный фреймворк для Telegram Bot API (метод polling)
+- **FastAPI** - REST API для веб-интерфейса
 - **openai** - клиент для работы с LLM через провайдер OpenRouter
 - **make** - автоматизация задач сборки и запуска
 
-### Дополнительные библиотеки
+### Frontend Stack
+- **React 18** - UI библиотека
+- **TypeScript 5** - type safety для JavaScript
+- **Vite 7** - быстрая сборка и dev сервер
+- **Tailwind CSS 4** - utility-first CSS фреймворк
+- **Shadcn/ui** - современные UI компоненты (Radix UI + Tailwind)
+- **Recharts** - декларативные графики для React
+- **React Router 6** - клиентский роутинг
+- **npm** - управление зависимостями frontend
+
+### Дополнительные библиотеки (Backend)
 - **pydantic** - валидация данных
 - **pydantic-settings** - загрузка и валидация конфигурации из переменных окружения
 - **python-dotenv** - работа с .env файлами
 - **dataclasses** (стандартная библиотека Python) - классы данных
 - **logging** (стандартная библиотека Python) - логирование
 
-### Инструменты качества кода (dev-зависимости)
+### Инструменты качества кода
+
+**Backend (dev-зависимости):**
 - **ruff** - быстрый форматтер и линтер (замена black, isort, flake8)
-- **mypy** - статическая проверка типов
+- **mypy** - статическая проверка типов (strict mode)
 - **pytest** - фреймворк для тестирования
 - **pytest-asyncio** - поддержка async тестов
 - **pytest-cov** - измерение покрытия кода тестами
+- **testcontainers** - изоляция тестов с реальной БД
+
+**Frontend (dev-зависимости):**
+- **ESLint** - линтинг JavaScript/TypeScript
+- **Prettier** - форматирование кода
+- **TypeScript strict mode** - строгая проверка типов
+- **Vitest** - unit тестирование (совместим с Vite)
+- **React Testing Library** - тестирование React компонентов
 
 ### Хранение данных
 - **PostgreSQL 16** - персистентное хранение истории диалогов и пользователей
@@ -52,9 +73,9 @@
 
 ```
 systech-aidd-my/
-├── src/                    # Исходный код
+├── src/                    # Backend исходный код
 │   ├── __init__.py
-│   ├── main.py            # Точка входа в приложение
+│   ├── main.py            # Точка входа для Telegram бота
 │   ├── bot.py             # Класс Bot - инициализация aiogram
 │   ├── handlers.py        # Обработка сообщений и команд из Telegram
 │   ├── llm_client.py      # Класс LLMClient - работа с OpenRouter
@@ -64,25 +85,73 @@ systech-aidd-my/
 │   ├── database.py        # Класс Database - управление подключением к БД
 │   ├── db_models.py       # SQLAlchemy модели (Message, User)
 │   ├── repository.py      # MessageRepository - слой доступа к данным
-│   └── user_repository.py # UserRepository - работа с пользователями
+│   ├── user_repository.py # UserRepository - работа с пользователями
+│   └── api/               # FastAPI веб-интерфейс
+│       ├── __init__.py
+│       ├── main.py        # Точка входа для API сервера
+│       ├── app.py         # FastAPI приложение
+│       ├── models.py      # Pydantic модели для API
+│       ├── stat_collector.py     # Protocol для статистики
+│       └── mock_stat_collector.py # Mock реализация
+├── frontend/             # Frontend исходный код
+│   ├── docs/             # Frontend документация
+│   │   ├── front-vision.md    # Видение frontend приложения
+│   │   └── tech-stack.md      # Технологический стек
+│   ├── src/              # Исходный код приложения
+│   │   ├── components/   # Переиспользуемые компоненты
+│   │   │   ├── ui/       # Shadcn/ui компоненты
+│   │   │   └── SampleChart.tsx  # Пример графика
+│   │   ├── pages/        # Страницы (Dashboard, Chat)
+│   │   │   ├── Dashboard.tsx
+│   │   │   └── Chat.tsx
+│   │   ├── api/          # API клиент для backend
+│   │   │   ├── client.ts
+│   │   │   └── statistics.ts
+│   │   ├── types/        # TypeScript типы
+│   │   │   └── statistics.ts
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Утилиты
+│   │   │   └── utils.ts  # cn() для Tailwind
+│   │   ├── App.tsx       # Главный компонент с роутингом
+│   │   ├── App.test.tsx  # Тесты для App
+│   │   ├── main.tsx      # Entry point
+│   │   ├── index.css     # Tailwind CSS imports
+│   │   └── setupTests.ts # Настройка тестов
+│   ├── public/           # Статические файлы
+│   ├── package.json      # Зависимости и скрипты
+│   ├── tsconfig.json     # TypeScript конфигурация
+│   ├── vite.config.ts    # Vite + Vitest конфигурация
+│   ├── tailwind.config.js # Tailwind CSS конфигурация
+│   ├── postcss.config.js # PostCSS конфигурация
+│   ├── .prettierrc       # Prettier конфигурация
+│   ├── eslint.config.js  # ESLint конфигурация
+│   └── components.json   # Shadcn/ui конфигурация
 ├── prompts/               # Файлы системных промптов
 │   └── system.txt         # Системный промпт (роль ассистента)
-├── tests/                 # Автоматизированные тесты
+├── tests/                 # Backend автоматизированные тесты
 │   ├── __init__.py
 │   ├── conftest.py        # Общие fixtures
-│   ├── test_models.py     # Тесты моделей данных (ChatMessage, UserData)
+│   ├── test_models.py     # Тесты моделей данных
 │   ├── test_conversation.py  # Тесты ConversationManager
 │   ├── test_llm_client.py    # Тесты LLMClient
 │   ├── test_config.py        # Тесты конфигурации
 │   ├── test_repository.py    # Тесты MessageRepository
 │   ├── test_user_repository.py  # Тесты UserRepository
 │   ├── test_handlers.py      # Тесты обработчиков
+│   ├── test_database.py      # Тесты Database
 │   ├── test_integration.py   # Интеграционные тесты
-│   └── test_user_integration.py  # Интеграционные тесты пользователей
+│   ├── test_user_integration.py  # Интеграционные тесты пользователей
+│   ├── test_api_endpoints.py    # Тесты API endpoints
+│   ├── test_api_models.py       # Тесты API моделей
+│   └── test_mock_stat_collector.py # Тесты MockStatCollector
 ├── alembic/              # Миграции базы данных
 │   ├── versions/         # Файлы миграций
 │   └── env.py            # Настройка Alembic
-├── docs/                 # Документация
+├── docs/                 # Общая документация
+│   ├── api/              # API документация
+│   │   └── api-contract.md
+│   ├── frontend/         # Frontend требования
+│   │   └── dashboard-requirements.md
 │   ├── idea.md
 │   ├── vision.md
 │   ├── roadmap.md         # Роадмап проекта
@@ -93,15 +162,15 @@ systech-aidd-my/
 ├── alembic.ini           # Конфигурация Alembic
 ├── docker-compose.yml    # PostgreSQL контейнер (настройки подключения к БД)
 ├── Dockerfile.migrations # Docker образ для автоматических миграций
-├── Makefile              # Команды для сборки, запуска и тестирования
-├── pyproject.toml        # Конфигурация проекта, зависимостей и инструментов
-├── uv.lock               # Lockfile с точными версиями зависимостей
+├── Makefile              # Команды для сборки, запуска и тестирования (Backend + Frontend)
+├── pyproject.toml        # Конфигурация backend проекта
+├── uv.lock               # Backend lockfile с точными версиями зависимостей
 └── README.md
 ```
 
 ### Описание ключевых файлов
 
-**Исходный код:**
+**Backend исходный код:**
 - **main.py** - запуск бота, инициализация БД, связывание компонентов, загрузка системного промпта
 - **bot.py** - создание и настройка aiogram Bot и Dispatcher
 - **handlers.py** - обработка входящих сообщений и команд из Telegram (`/start`, `/help`, `/clear`, `/role`)
@@ -114,10 +183,27 @@ systech-aidd-my/
 - **repository.py** - MessageRepository для работы с сообщениями
 - **user_repository.py** - UserRepository для работы с пользователями
 
+**API (FastAPI):**
+- **api/main.py** - точка входа для API сервера (uvicorn)
+- **api/app.py** - FastAPI приложение с endpoints и CORS
+- **api/models.py** - Pydantic модели для валидации API запросов/ответов
+- **api/stat_collector.py** - Protocol интерфейс для сборщика статистики
+- **api/mock_stat_collector.py** - Mock реализация для разработки frontend
+
+**Frontend (React + TypeScript):**
+- **App.tsx** - главный компонент с роутингом и sidebar навигацией
+- **pages/Dashboard.tsx** - страница дашборда со статистикой
+- **pages/Chat.tsx** - страница веб-чата с ботом
+- **api/client.ts** - базовый HTTP клиент для запросов к backend API
+- **api/statistics.ts** - методы для получения статистики
+- **types/statistics.ts** - TypeScript типы для API моделей
+- **lib/utils.ts** - утилита cn() для работы с Tailwind CSS классами
+- **components/SampleChart.tsx** - пример компонента с графиком Recharts
+
 **Промпты:**
 - **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)
 
-**Тестирование:**
+**Backend тестирование:**
 - **conftest.py** - общие fixtures для переиспользования (testcontainers, session factory)
 - **test_models.py** - unit-тесты моделей данных (ChatMessage, UserData)
 - **test_conversation.py** - unit-тесты управления историей
@@ -126,8 +212,16 @@ systech-aidd-my/
 - **test_repository.py** - unit-тесты MessageRepository
 - **test_user_repository.py** - unit-тесты UserRepository
 - **test_handlers.py** - unit-тесты обработчиков
+- **test_database.py** - тесты Database (connection pooling, sessions)
 - **test_integration.py** - интеграционные тесты полного цикла
 - **test_user_integration.py** - интеграционные тесты работы с пользователями
+- **test_api_endpoints.py** - тесты API endpoints (FastAPI)
+- **test_api_models.py** - тесты валидации API моделей
+- **test_mock_stat_collector.py** - тесты MockStatCollector
+
+**Frontend тестирование:**
+- **App.test.tsx** - unit-тесты главного компонента (Vitest + React Testing Library)
+- Frontend тесты запускаются через `make frontend-test`
 
 **Конфигурация:**
 - **pyproject.toml** - метаданные проекта, зависимости, настройки инструментов (ruff, mypy, pytest)
@@ -542,32 +636,55 @@ logger.error(f"LLM API error: {error}")
 
 ### Процесс контроля качества
 
-**Перед коммитом:**
-1. `make format` - автоформатирование кода
-2. `make lint` - проверка линтером
-3. `make typecheck` - проверка типов
-4. `make test` - запуск тестов
+**Backend - перед коммитом:**
+1. `make format` - автоформатирование кода (ruff)
+2. `make lint` - проверка линтером (ruff)
+3. `make typecheck` - проверка типов (mypy strict)
+4. `make test` - запуск тестов (pytest)
+
+**Frontend - перед коммитом:**
+1. `make frontend-format` - автоформатирование кода (Prettier)
+2. `make frontend-lint` - проверка линтером (ESLint)
+3. `make frontend-test` - запуск тестов (Vitest)
 
 **Быстрая проверка:**
-- `make quality` - запускает format + lint + typecheck одной командой
-- `make test-cov` - тесты с отчетом о покрытии
+- `make quality` - Backend: format + lint + typecheck
+- `make frontend-quality` - Frontend: format + lint
+- `make quality-all` - Backend + Frontend полная проверка
+- `make test-cov` - Backend тесты с отчетом о покрытии
+
+**Полная проверка перед коммитом:**
+```bash
+make quality-all && make test && make frontend-test
+```
 
 **CI/CD готовность:**
 - Все команды интегрируются в GitHub Actions
 - Запуск на каждый push/PR
 - Блокировка merge при провале проверок
+- Backend coverage >85%, Frontend coverage target >70%
 
 ## 11. Локальная разработка
 
 ### Требования к окружению
+
+**Backend:**
 - **Python 3.11+** - установленный интерпретатор Python
 - **uv** - менеджер пакетов и виртуальных окружений
 - **Docker** - для запуска PostgreSQL (настройки в `docker-compose.yml`)
-- **make** - для автоматизации команд (опционально)
 - **Telegram Bot Token** - получить через [@BotFather](https://t.me/botfather)
 - **OpenRouter API Key** - получить на [openrouter.ai](https://openrouter.ai)
 
+**Frontend:**
+- **Node.js 18+** - для npm и запуска frontend
+- **npm** - менеджер пакетов для JavaScript
+
+**Общее:**
+- **make** - для автоматизации команд (опционально, но рекомендуется)
+
 ### Установка и запуск
+
+**Backend:**
 1. Создать виртуальное окружение: `uv venv`
 2. Установить зависимости: `uv pip install -e ".[dev]"` или `make install-dev`
 3. Настроить `.env` файл:
@@ -575,18 +692,32 @@ logger.error(f"LLM API error: {error}")
    - `DATABASE_URL` - параметры подключения смотри в `docker-compose.yml`
 4. Запустить PostgreSQL: `make db-up` (использует настройки из `docker-compose.yml`)
 5. Применить миграции: `make db-migrate`
-6. Запустить бота: `make run`
+6. Запустить бота: `make run` (или API: `make run-api`)
 
-**Примечание:** PostgreSQL запускается в Docker контейнере с настройками из `docker-compose.yml`. 
-Убедитесь, что порт 5433 свободен или измените маппинг портов в `docker-compose.yml`.
+**Frontend:**
+1. Установить зависимости: `make frontend-install` (или `cd frontend && npm install`)
+2. Настроить `.env` файл в `frontend/`:
+   - `VITE_API_BASE_URL=http://localhost:8000/api/v1`
+3. Запустить dev сервер: `make frontend-dev` (откроется на http://localhost:5173)
+
+**Примечание:** 
+- PostgreSQL запускается в Docker контейнере с настройками из `docker-compose.yml`
+- Убедитесь, что порты 5433 (PostgreSQL), 8000 (API), 5173 (Frontend) свободны
 
 ### Команды Makefile
 
-**Запуск:**
+**Backend - Запуск:**
 - `make install` - установить зависимости
 - `make install-dev` - установить с dev-зависимостями (ruff, mypy, pytest, testcontainers)
-- `make run` - запустить бота
+- `make run` - запустить Telegram бота
 - `make dev` - запустить в режиме разработки (LOG_LEVEL=DEBUG)
+- `make run-api` - запустить API сервер (http://localhost:8000)
+
+**Frontend - Запуск:**
+- `make frontend-install` - установить зависимости
+- `make frontend-dev` - запустить dev сервер (http://localhost:5173)
+- `make frontend-build` - собрать для продакшена
+- `make frontend-preview` - preview production build
 
 **База данных:**
 - `make db-up` - запустить PostgreSQL через Docker (настройки из `docker-compose.yml`)
@@ -598,14 +729,19 @@ logger.error(f"LLM API error: {error}")
 **Примечание:** Все параметры подключения к PostgreSQL (user, password, database, port) настраиваются в `docker-compose.yml`.
 
 **Качество кода:**
-- `make format` - форматировать код (ruff format)
-- `make lint` - проверить линтером (ruff check)
-- `make typecheck` - проверить типы (mypy)
-- `make quality` - полная проверка (format + lint + typecheck)
+- `make quality` - Backend: format + lint + typecheck
+- `make frontend-quality` - Frontend: format + lint
+- `make quality-all` - Backend + Frontend: полная проверка
+- `make format` - Backend форматирование (ruff)
+- `make lint` - Backend линтинг (ruff)
+- `make typecheck` - Backend проверка типов (mypy)
+- `make frontend-format` - Frontend форматирование (Prettier)
+- `make frontend-lint` - Frontend линтинг (ESLint)
 
 **Тестирование:**
-- `make test` - запустить тесты (с testcontainers)
-- `make test-cov` - тесты с отчетом о покрытии
+- `make test` - Backend тесты (pytest с testcontainers)
+- `make test-cov` - Backend тесты с отчетом о покрытии
+- `make frontend-test` - Frontend тесты (Vitest)
 
 **Прочее:**
 - `make clean` - очистить временные файлы

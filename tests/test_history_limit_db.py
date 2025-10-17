@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from src.conversation import ConversationManager
 from src.db_models import Message
 from src.models import ChatMessage, ConversationKey
+from src.repository import MessageRepository
 
 
 @pytest.mark.asyncio
@@ -80,8 +81,6 @@ async def test_history_limit_query_optimization(
 
     # MessageRepository.get_history использует .limit() в SQL запросе
     # Проверяем, что вернулось именно 3 сообщения (без system)
-    from src.repository import MessageRepository
-
     repo = MessageRepository(db_session)
 
     history = await repo.get_history(key, limit=3)

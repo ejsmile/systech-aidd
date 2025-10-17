@@ -2,7 +2,7 @@
 
 import random
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from src.api.models import MessageByDate, StatisticsResponse, TopUser
 

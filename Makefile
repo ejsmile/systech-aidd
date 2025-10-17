@@ -1,4 +1,4 @@
-.PHONY: install install-dev run dev run-api test-api clean format lint typecheck quality test test-cov db-up db-down db-migrate db-revision db-reset restart
+.PHONY: install install-dev run dev run-api test-api clean format lint typecheck quality test test-cov db-up db-down db-migrate db-revision db-reset restart frontend-install frontend-dev frontend-build frontend-preview frontend-lint frontend-format frontend-test frontend-quality quality-all
 
 install:
 	uv pip install -e .
@@ -26,7 +26,7 @@ typecheck:
 	uv run mypy src/
 
 quality: format lint typecheck
-	@echo "✅ Code quality checks passed"
+	@echo "✅ Backend code quality checks passed"
 
 test:
 	uv run pytest tests/ -v
@@ -70,4 +70,32 @@ run-api:
 
 test-api:
 	uv run pytest tests/test_api_endpoints.py -v
+
+# Frontend commands
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
+
+frontend-preview:
+	cd frontend && npm run preview
+
+frontend-lint:
+	cd frontend && npm run lint
+
+frontend-format:
+	cd frontend && npm run format
+
+frontend-test:
+	cd frontend && npm run test:run
+
+frontend-quality: frontend-format frontend-lint
+	@echo "✅ Frontend code quality checks passed"
+
+quality-all: quality frontend-quality
+	@echo "✅ All code quality checks passed (Backend + Frontend)"
 
