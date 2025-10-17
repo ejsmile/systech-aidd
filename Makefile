@@ -1,4 +1,4 @@
-.PHONY: install install-dev run dev clean format lint typecheck quality test test-cov db-up db-down db-migrate db-revision db-reset restart
+.PHONY: install install-dev run dev run-api test-api clean format lint typecheck quality test test-cov db-up db-down db-migrate db-revision db-reset restart
 
 install:
 	uv pip install -e .
@@ -63,4 +63,11 @@ restart:
 	@pkill -f "python -m src.main" || true
 	@sleep 1
 	uv run python -m src.main
+
+# API commands
+run-api:
+	uv run python -m src.api.main
+
+test-api:
+	uv run pytest tests/test_api_endpoints.py -v
 
