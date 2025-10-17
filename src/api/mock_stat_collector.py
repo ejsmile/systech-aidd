@@ -137,29 +137,37 @@ class MockStatCollector:
         Получить фейковую статистику.
 
         Args:
-            start_date: Начальная дата для фильтрации (игнорируется в mock)
-            end_date: Конечная дата для фильтрации (игнорируется в mock)
+            start_date: Начальная дата для фильтрации
+            end_date: Конечная дата для фильтрации
 
         Returns:
             StatisticsResponse: Сгенерированная статистика
         """
+        # Фильтрация сообщений по датам
+        # Убираем timezone info для корректного сравнения
+        filtered_messages = self._messages
+        if start_date is not None:
+            start_naive = start_date.replace(tzinfo=None) if start_date.tzinfo else start_date
+            filtered_messages = [
+                msg for msg in filtered_messages if msg["created_at"] >= start_naive
+            ]
+        if end_date is not None:
+            end_naive = end_date.replace(tzinfo=None) if end_date.tzinfo else end_date
+            filtered_messages = [msg for msg in filtered_messages if msg["created_at"] <= end_naive]
+
         # Подсчет статистики
         total_users = len(self._users)
-        now = datetime.now()
-        thirty_days_ago = now - timedelta(days=30)
 
-        # Активные пользователи (с сообщениями за последние 30 дней)
-        active_user_ids = {
-            msg["user_id"] for msg in self._messages if msg["created_at"] >= thirty_days_ago
-        }
+        # Активные пользователи (с сообщениями в выбранном периоде)
+        active_user_ids = {msg["user_id"] for msg in filtered_messages}
         active_users = len(active_user_ids)
 
-        total_messages = len(self._messages)
+        total_messages = len(filtered_messages)
         avg_messages_per_user = round(total_messages / active_users, 1) if active_users > 0 else 0.0
 
-        # Группировка сообщений по датам
+        # Группировка сообщений по датам (только отфильтрованные)
         messages_by_date_dict: dict[datetime, int] = {}
-        for msg in self._messages:
+        for msg in filtered_messages:
             date = msg["created_at"].replace(hour=0, minute=0, second=0, microsecond=0)
             messages_by_date_dict[date] = messages_by_date_dict.get(date, 0) + 1
 
@@ -168,9 +176,9 @@ class MockStatCollector:
             for date, count in sorted(messages_by_date_dict.items())
         ]
 
-        # Топ пользователей по количеству сообщений
+        # Топ пользователей по количеству сообщений (только отфильтрованные)
         user_message_counts: dict[int, int] = {}
-        for msg in self._messages:
+        for msg in filtered_messages:
             user_id = msg["user_id"]
             user_message_counts[user_id] = user_message_counts.get(user_id, 0) + 1
 

@@ -49,7 +49,7 @@ export default function MessagesByDateChart({ data, isLoading = false }: Message
     <div className="h-80 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="date"
             stroke="hsl(var(--muted-foreground))"
@@ -69,8 +69,9 @@ export default function MessagesByDateChart({ data, isLoading = false }: Message
             type="monotone"
             dataKey="count"
             stroke="hsl(var(--primary))"
-            dot={{ fill: 'hsl(var(--primary))' }}
-            strokeWidth={2}
+            strokeWidth={3}
+            dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+            activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
             name="Messages"
             isAnimationActive={false}
           />

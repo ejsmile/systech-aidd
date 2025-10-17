@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
-import { clearChatHistory, getChatHistory, sendMessage, executeAdminQuery, type Text2SQLResponse } from '@/api/chat'
+import {
+  clearChatHistory,
+  getChatHistory,
+  sendMessage,
+  executeAdminQuery,
+  type Text2SQLResponse,
+} from '@/api/chat'
 import { APIError } from '@/api/client'
 import ChatInput from '@/components/ChatInput'
 import ChatMessage from '@/components/ChatMessage'
@@ -115,9 +121,9 @@ export default function Chat() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 py-4">
+      <div className="bg-background flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Chat with AI Assistant</h1>
+          <h1 className="text-foreground text-2xl font-bold">Chat with AI Assistant</h1>
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -127,9 +133,12 @@ export default function Chat() {
                 setIsAdminMode(e.target.checked)
                 setSqlResult(null)
               }}
-              className="h-4 w-4 cursor-pointer"
+              className="border-input accent-primary h-4 w-4 cursor-pointer rounded"
             />
-            <label htmlFor="admin-mode" className="cursor-pointer text-sm font-medium">
+            <label
+              htmlFor="admin-mode"
+              className="text-foreground cursor-pointer text-sm font-medium"
+            >
               Admin Mode (Text2SQL)
             </label>
           </div>
@@ -157,23 +166,25 @@ export default function Chat() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-center text-gray-500">
+            <p className="text-muted-foreground text-center">
               No messages yet. Start a conversation!
             </p>
           </div>
         ) : (
           <>
-            {messages.map((msg, idx) => (
-              <ChatMessage
-                key={idx}
-                role={msg.role}
-                content={msg.content}
-                timestamp={msg.created_at}
-              />
-            ))}
+            {messages
+              .filter((msg) => msg.role !== 'system')
+              .map((msg, idx) => (
+                <ChatMessage
+                  key={idx}
+                  role={msg.role as 'user' | 'assistant'}
+                  content={msg.content}
+                  timestamp={msg.created_at}
+                />
+              ))}
             {isSending && (
               <div className="mb-4 flex justify-start">
-                <div className="flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-gray-600">
+                <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-lg px-4 py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">
                     {isAdminMode ? 'Executing query...' : 'Assistant is typing...'}
@@ -197,7 +208,7 @@ export default function Chat() {
       )}
 
       {/* Input area */}
-      <div className="border-t bg-white p-6">
+      <div className="bg-background border-t p-6">
         <ChatInput
           onSendMessage={handleSendMessage}
           disabled={isSending || isLoading}

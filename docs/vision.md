@@ -18,6 +18,8 @@
 - **Shadcn/ui** - современные UI компоненты (Radix UI + Tailwind)
 - **Recharts** - декларативные графики для React
 - **React Router 6** - клиентский роутинг
+- **Radix UI** - примитивы для доступных UI компонентов (@radix-ui/react-select, @radix-ui/react-slot)
+- **Lucide React** - иконки (Moon, Sun, Calendar и др.)
 - **npm** - управление зависимостями frontend
 
 ### Дополнительные библиотеки (Backend)
@@ -99,29 +101,37 @@ systech-aidd-my/
 │   │   └── tech-stack.md      # Технологический стек
 │   ├── src/              # Исходный код приложения
 │   │   ├── components/   # Переиспользуемые компоненты
-│   │   │   ├── ui/       # Shadcn/ui компоненты
-│   │   │   └── SampleChart.tsx  # Пример графика
+│   │   │   ├── ui/       # Shadcn/ui компоненты (button, card, select, alert)
+│   │   │   ├── ThemeToggle.tsx      # Переключатель темной/светлой темы
+│   │   │   ├── PeriodSelector.tsx   # Выбор периода для статистики
+│   │   │   ├── MetricCard.tsx       # Карточка метрики
+│   │   │   ├── MessagesByDateChart.tsx  # График сообщений по дням
+│   │   │   └── TopUsersTable.tsx    # Таблица топ пользователей
 │   │   ├── pages/        # Страницы (Dashboard, Chat)
-│   │   │   ├── Dashboard.tsx
-│   │   │   └── Chat.tsx
+│   │   │   ├── Dashboard.tsx  # Дашборд с фильтрацией по периодам
+│   │   │   └── Chat.tsx       # Веб-чат с ботом
+│   │   ├── contexts/     # React Context API
+│   │   │   └── ThemeContext.tsx     # Управление темой (dark/light)
 │   │   ├── api/          # API клиент для backend
-│   │   │   ├── client.ts
-│   │   │   └── statistics.ts
+│   │   │   ├── client.ts      # Базовый HTTP клиент
+│   │   │   ├── chat.ts        # API методы для чата
+│   │   │   └── statistics.ts  # API методы для статистики
 │   │   ├── types/        # TypeScript типы
-│   │   │   └── statistics.ts
+│   │   │   ├── statistics.ts  # Типы для статистики
+│   │   │   └── chat.ts        # Типы для чата
 │   │   ├── hooks/        # Custom React hooks
 │   │   ├── lib/          # Утилиты
 │   │   │   └── utils.ts  # cn() для Tailwind
 │   │   ├── App.tsx       # Главный компонент с роутингом
 │   │   ├── App.test.tsx  # Тесты для App
-│   │   ├── main.tsx      # Entry point
-│   │   ├── index.css     # Tailwind CSS imports
+│   │   ├── main.tsx      # Entry point с ThemeProvider
+│   │   ├── index.css     # Tailwind CSS + CSS переменные для тем
 │   │   └── setupTests.ts # Настройка тестов
 │   ├── public/           # Статические файлы
 │   ├── package.json      # Зависимости и скрипты
 │   ├── tsconfig.json     # TypeScript конфигурация
 │   ├── vite.config.ts    # Vite + Vitest конфигурация
-│   ├── tailwind.config.js # Tailwind CSS конфигурация
+│   ├── tailwind.config.js # Tailwind CSS + darkMode + design tokens
 │   ├── postcss.config.js # PostCSS конфигурация
 │   ├── .prettierrc       # Prettier конфигурация
 │   ├── eslint.config.js  # ESLint конфигурация
@@ -170,6 +180,29 @@ systech-aidd-my/
 
 ### Описание ключевых файлов
 
+**Frontend возможности:**
+- **Dark/Light Theme** - полная поддержка темной и светлой темы:
+  - Автоматическое определение системных предпочтений
+  - Переключатель темы в UI (ThemeToggle)
+  - Сохранение выбора в localStorage
+  - CSS переменные (design tokens) для обеих тем
+  - Настройка через ThemeContext (React Context API)
+- **Period Filtering** - фильтрация статистики по периодам:
+  - Выбор периода: неделя / месяц / весь период
+  - PeriodSelector компонент с Radix UI select
+  - Автоматическое обновление данных при смене периода
+- **Dashboard Analytics** - визуализация данных:
+  - MetricCard - карточки с ключевыми метриками
+  - MessagesByDateChart - график динамики сообщений (Recharts)
+  - TopUsersTable - таблица топ пользователей
+  - Автообновление каждые 30 секунд
+- **Design System** - единая система дизайна:
+  - Shadcn/ui компоненты (button, card, select, alert)
+  - Tailwind CSS с настроенными design tokens
+  - Semantic color tokens (primary, secondary, muted, accent, destructive, card, popover)
+  - Chart colors (chart-1 до chart-5)
+  - Responsive дизайн
+
 **Backend исходный код:**
 - **main.py** - запуск бота, инициализация БД, связывание компонентов, загрузка системного промпта
 - **bot.py** - создание и настройка aiogram Bot и Dispatcher
@@ -192,13 +225,23 @@ systech-aidd-my/
 
 **Frontend (React + TypeScript):**
 - **App.tsx** - главный компонент с роутингом и sidebar навигацией
-- **pages/Dashboard.tsx** - страница дашборда со статистикой
+- **main.tsx** - entry point с ThemeProvider для поддержки тем
+- **pages/Dashboard.tsx** - страница дашборда со статистикой и фильтрацией по периодам
 - **pages/Chat.tsx** - страница веб-чата с ботом
+- **contexts/ThemeContext.tsx** - управление dark/light темой, сохранение в localStorage
+- **components/ThemeToggle.tsx** - переключатель темы (Moon/Sun иконки)
+- **components/PeriodSelector.tsx** - выбор периода фильтрации (неделя/месяц/весь период)
+- **components/MessagesByDateChart.tsx** - график динамики сообщений
+- **components/TopUsersTable.tsx** - таблица топ пользователей
+- **components/MetricCard.tsx** - карточка для отображения метрики
+- **components/ui/** - Shadcn/ui компоненты (button, card, select, alert)
 - **api/client.ts** - базовый HTTP клиент для запросов к backend API
+- **api/chat.ts** - методы для работы с чатом
 - **api/statistics.ts** - методы для получения статистики
-- **types/statistics.ts** - TypeScript типы для API моделей
+- **types/statistics.ts** - TypeScript типы для API моделей статистики
+- **types/chat.ts** - TypeScript типы для чата
 - **lib/utils.ts** - утилита cn() для работы с Tailwind CSS классами
-- **components/SampleChart.tsx** - пример компонента с графиком Recharts
+- **index.css** - Tailwind CSS + CSS переменные для dark/light тем (design tokens)
 
 **Промпты:**
 - **prompts/system.txt** - системный промпт, определяющий роль и поведение ассистента (опционально, есть дефолт)

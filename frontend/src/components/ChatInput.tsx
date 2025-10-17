@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void
@@ -10,6 +11,7 @@ interface ChatInputProps {
 export default function ChatInput({ onSendMessage, disabled, placeholder }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { theme } = useTheme()
 
   useEffect(() => {
     // Auto-expand textarea as user types
@@ -45,8 +47,9 @@ export default function ChatInput({ onSendMessage, disabled, placeholder }: Chat
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder={placeholder || "Type your message... (Shift+Enter for new line)"}
-        className="flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500"
+        placeholder={placeholder || 'Type your message... (Shift+Enter for new line)'}
+        style={{ colorScheme: theme }}
+        className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 resize-none rounded-md border px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
         rows={1}
       />
       <Button

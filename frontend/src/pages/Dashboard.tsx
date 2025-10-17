@@ -1,12 +1,13 @@
 // Dashboard страница - статистика использования бота
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { StatisticsResponse } from '@/types/statistics'
 import { getStatistics } from '@/api/statistics'
 import { APIError } from '@/api/client'
 import MetricCard from '@/components/MetricCard'
 import MessagesByDateChart from '@/components/MessagesByDateChart'
 import TopUsersTable from '@/components/TopUsersTable'
+import PeriodSelector, { type Period } from '@/components/PeriodSelector'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -17,12 +18,32 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [period, setPeriod] = useState<Period>('month')
+
+  // Calculate date range based on selected period
+  const dateRange = useMemo(() => {
+    const now = new Date()
+    const endDate = now.toISOString()
+
+    if (period === 'all') {
+      return { startDate: undefined, endDate: undefined }
+    }
+
+    const startDate = new Date(now)
+    if (period === 'week') {
+      startDate.setDate(startDate.getDate() - 7)
+    } else if (period === 'month') {
+      startDate.setDate(startDate.getDate() - 30)
+    }
+
+    return { startDate: startDate.toISOString(), endDate }
+  }, [period])
 
   const loadStatistics = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await getStatistics()
+      const data = await getStatistics(dateRange.startDate, dateRange.endDate)
       setStatistics(data)
       setLastUpdate(new Date())
     } catch (err) {
@@ -35,7 +56,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [dateRange])
 
   // Initial load and auto-refresh setup
   useEffect(() => {
@@ -59,15 +80,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Статистика использования бота и активности пользователей
-        </p>
-        <p className="text-muted-foreground mt-2 text-xs">
-          Последнее обновление: {lastUpdate.toLocaleTimeString()}
-        </p>
+      {/* Header with Period Selector */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-muted-foreground mt-2">
+            Статистика использования бота и активности пользователей
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs">
+            Последнее обновление: {lastUpdate.toLocaleTimeString()}
+          </p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
       {/* Error Alert */}
@@ -124,7 +147,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Сообщения по датам</CardTitle>
-              <CardDescription>Распределение сообщений за последние 30 дней</CardDescription>
+              <CardDescription>Распределение сообщений за выбранный период</CardDescription>
             </CardHeader>
             <CardContent>
               <MessagesByDateChart

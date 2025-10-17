@@ -11,14 +11,12 @@ export default function ChatMessage({ role, content, timestamp }: ChatMessagePro
     <div className={`mb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
-          isUser
-            ? 'bg-blue-500 text-white'
-            : 'bg-gray-200 text-gray-900'
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
         }`}
       >
-        <p className="whitespace-pre-wrap break-words text-sm">{content}</p>
+        <p className="text-sm break-words whitespace-pre-wrap">{content}</p>
         {timestamp && (
-          <p className={`mt-1 text-xs ${isUser ? 'text-blue-100' : 'text-gray-500'}`}>
+          <p className={`mt-1 text-xs ${isUser ? 'opacity-80' : 'text-muted-foreground'}`}>
             {new Date(timestamp).toLocaleTimeString()}
           </p>
         )}

@@ -12,9 +12,7 @@ export interface Text2SQLResponse {
   interpretation: string
 }
 
-export async function sendMessage(
-  data: SendMessageRequest
-): Promise<SendMessageResponse> {
+export async function sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
   return post<SendMessageResponse, SendMessageRequest>('/chat/message', data)
 }
 

@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Card } from '@/components/ui/card'
 
 interface SQLResultDisplayProps {
@@ -7,11 +14,7 @@ interface SQLResultDisplayProps {
   interpretation: string
 }
 
-export default function SQLResultDisplay({
-  sql,
-  result,
-  interpretation,
-}: SQLResultDisplayProps) {
+export default function SQLResultDisplay({ sql, result, interpretation }: SQLResultDisplayProps) {
   const columns = result.length > 0 ? Object.keys(result[0]) : []
 
   return (
@@ -19,7 +22,7 @@ export default function SQLResultDisplay({
       {/* SQL Query */}
       <Card className="p-4">
         <h3 className="mb-2 font-semibold">SQL Query:</h3>
-        <pre className="overflow-x-auto rounded bg-gray-100 p-3 text-sm">
+        <pre className="bg-muted text-foreground overflow-x-auto rounded p-3 text-sm">
           <code>{sql}</code>
         </pre>
       </Card>
@@ -41,9 +44,7 @@ export default function SQLResultDisplay({
                 {result.map((row, idx) => (
                   <TableRow key={idx}>
                     {columns.map((col) => (
-                      <TableCell key={`${idx}-${col}`}>
-                        {String(row[col] ?? 'null')}
-                      </TableCell>
+                      <TableCell key={`${idx}-${col}`}>{String(row[col] ?? 'null')}</TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -53,14 +54,14 @@ export default function SQLResultDisplay({
         </Card>
       ) : (
         <Card className="p-4">
-          <p className="text-gray-500">No results returned.</p>
+          <p className="text-muted-foreground">No results returned.</p>
         </Card>
       )}
 
       {/* Interpretation */}
       <Card className="p-4">
         <h3 className="mb-2 font-semibold">Interpretation:</h3>
-        <p className="text-gray-700">{interpretation}</p>
+        <p className="text-foreground">{interpretation}</p>
       </Card>
     </div>
   )
