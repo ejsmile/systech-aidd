@@ -59,7 +59,7 @@ async def test_database_get_session_rollback_on_error(test_database_url: str) ->
 
     # Пытаемся выполнить невалидный SQL, чтобы вызвать исключение
     with pytest.raises(DBAPIError):
-        async with db.get_session() as session:
+        async for session in db.get_session():
             # Специально вызываем ошибку внутри сессии
             # Это должно вызвать rollback в except блоке
             await session.execute(text("SELECT * FROM nonexistent_table"))

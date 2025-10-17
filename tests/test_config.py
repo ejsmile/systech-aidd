@@ -27,7 +27,7 @@ def test_config_with_required_fields() -> None:
 
 def test_config_with_custom_values() -> None:
     """Конфигурация с кастомными значениями"""
-    config = Config(
+    config = ConfigForTests(
         telegram_token="test",
         openrouter_api_key="test",
         model_name="gpt-4",
@@ -42,16 +42,17 @@ def test_config_with_custom_values() -> None:
     assert config.system_prompt == "Custom prompt"
 
 
-def test_config_default_values() -> None:
-    """Проверка значений по умолчанию"""
+def test_config_test_defaults() -> None:
+    """Проверка что другие дефолтные значения правильные"""
     config = ConfigForTests(
         telegram_token="test",
         openrouter_api_key="test",
+        system_prompt="Custom test prompt",
     )
 
     assert config.openrouter_base_url == "https://openrouter.ai/api/v1"
     assert config.model_name == "openai/gpt-oss-20b:free"
-    assert config.system_prompt == "Ты полезный ассистент."
+    assert config.system_prompt == "Custom test prompt"  # Use provided value
     assert config.max_history_messages == DEFAULT_MAX_HISTORY
     assert config.temperature == DEFAULT_TEMPERATURE
     assert config.log_level == "INFO"

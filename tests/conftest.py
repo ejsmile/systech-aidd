@@ -22,6 +22,12 @@ os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
 class ConfigForTests(Config):
     """Config для тестов - без загрузки .env файла и переменных окружения"""
 
+    def __init__(self, **data):
+        # Set skip_prompt_loading before calling parent __init__
+        if "_skip_prompt_loading" not in data:
+            data["_skip_prompt_loading"] = True
+        super().__init__(**data)
+
     @classmethod
     def settings_customise_sources(
         cls,
