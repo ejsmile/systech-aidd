@@ -12,8 +12,8 @@ COPY prompts ./prompts
 COPY alembic ./alembic
 COPY alembic.ini ./
 
-# Установка зависимостей
-RUN uv pip install --system -e .
+# Установка зависимостей (включая dev для тестов)
+RUN uv pip install --system -e ".[dev]"
 
 # Команда будет передана из docker-compose.yml
 

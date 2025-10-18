@@ -1,5 +1,7 @@
 """Интеграционные тесты для API endpoints."""
 
+from collections.abc import AsyncGenerator
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -7,10 +9,35 @@ from src.api.app import app
 
 
 @pytest.fixture
-async def async_client() -> AsyncClient:
-    """Async client для тестирования API."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+async def async_client(
+    test_database_url: str, apply_migrations: None
+) -> AsyncGenerator[AsyncClient, None]:
+    """Async client для тестирования API с testcontainer."""
+    from src.api.real_stat_collector import RealStatCollector  # noqa: PLC0415
+    from src.database import Database  # noqa: PLC0415
+
+    # Create fresh database instance for testing with testcontainer
+    database = Database(test_database_url)
+
+    # Initialize stat collector with test database
+    stat_collector = RealStatCollector(
+        session_factory=database.get_session,
+        active_users_days=30,
+    )
+
+    # Override app dependencies
+    import src.api.app as app_module  # noqa: PLC0415
+
+    original_stat_collector = app_module.stat_collector
+    app_module.stat_collector = stat_collector
+
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+    finally:
+        # Restore original stat collector
+        app_module.stat_collector = original_stat_collector
+        await database.disconnect()
 
 
 @pytest.mark.asyncio

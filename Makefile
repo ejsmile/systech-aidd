@@ -34,6 +34,12 @@ test:
 test-cov:
 	uv run pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
 
+test-docker:
+	docker compose -f docker-compose.test.yml run --rm test-backend
+
+test-docker-build:
+	docker compose -f docker-compose.test.yml build test-backend
+
 # Database commands
 db-up:
 	docker compose up -d postgres

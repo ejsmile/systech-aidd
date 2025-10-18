@@ -226,8 +226,12 @@ make frontend-format   # Форматирование кода
 make quality       # Backend: format + lint + typecheck
 make frontend-quality  # Frontend: format + lint
 make quality-all   # Backend + Frontend: полная проверка качества
-make test          # Запустить все тесты
-make test-cov      # Тесты с отчетом покрытия
+
+# Тестирование
+make test          # Backend тесты (env vars из conftest.py)
+make test-cov      # Backend тесты с coverage отчетом
+make test-docker   # Backend тесты в Docker (изолированное окружение)
+make frontend-test # Frontend тесты (Vitest + jsdom)
 
 # Разработка
 make install-dev   # Установить dev-зависимости
