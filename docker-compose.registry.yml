@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: systech-aidd-postgres
+    environment:
+      POSTGRES_USER: aidd_user
+      POSTGRES_PASSWORD: aidd_password
+      POSTGRES_DB: aidd_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aidd_user -d aidd_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrations:
+    image: ghcr.io/ejsmile/systech-aidd-bot:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    command: uv run alembic upgrade head
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  bot:
+    image: ghcr.io/ejsmile/systech-aidd-bot:latest
+    container_name: systech-aidd-bot
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    command: uv run python -m src.main
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/ejsmile/systech-aidd-api:latest
+    container_name: systech-aidd-api
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    ports:
+      - "8000:8000"
+    command: uv run python -m src.api.main
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/ejsmile/systech-aidd-frontend:latest
+    container_name: systech-aidd-frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

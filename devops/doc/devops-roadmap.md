@@ -19,7 +19,7 @@
 | Код | Название | Статус | План реализации |
 |-----|----------|--------|-----------------|
 | **D0** | Basic Docker Setup | ✅ Завершен | [d0-docker-setup.md](plans/d0-docker-setup.md) |
-| **D1** | Build & Publish | ⏳ Запланирован | TBD |
+| **D1** | Build & Publish | ✅ Завершен | [d1-build-publish.md](plans/d1-build-publish.md) |
 | **D2** | Развертывание на сервер | ⏳ Запланирован | TBD |
 | **D3** | Auto Deploy | ⏳ Запланирован | TBD |
 
@@ -111,6 +111,7 @@
 
 | Дата | Изменение |
 |------|-----------|
+| 2025-10-18 | ✅ Завершен спринт D1: Build & Publish |
 | 2025-10-18 | ✅ Завершен спринт D0: Basic Docker Setup |
 | 2025-10-18 | Создан DevOps roadmap, добавлены спринты D0-D3 |
 
