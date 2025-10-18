@@ -52,6 +52,17 @@ def upgrade() -> None:
 
     # ===== ПОЛЬЗОВАТЕЛИ =====
     users = [
+        # Веб-пользователь - для веб-интерфейса
+        {
+            "user_id": 1,
+            "username": "web-user-1",
+            "first_name": "Web",
+            "last_name": "User",
+            "bio": "Web interface user for testing",
+            "age": 25,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        },
         # Пользователь 3 - создан 2 месяца назад
         {
             "user_id": 301,
@@ -295,6 +306,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove historical test data."""
     # Удаляем тестовые сообщения
-    op.execute("DELETE FROM messages WHERE user_id IN (301, 401)")
+    op.execute("DELETE FROM messages WHERE user_id IN (1, 301, 401)")
     # Удаляем тестовых пользователей
-    op.execute("DELETE FROM users WHERE user_id IN (301, 401)")
+    op.execute("DELETE FROM users WHERE user_id IN (1, 301, 401)")

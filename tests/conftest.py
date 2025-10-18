@@ -67,12 +67,8 @@ class ConfigForTests(Config):
         return (init_settings,)
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an event loop for the entire test session"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Убираем session-scoped event_loop fixture
+# pytest-asyncio с asyncio_mode = auto автоматически управляет event loop
 
 
 @pytest.fixture(scope="session")
@@ -94,13 +90,13 @@ def postgres_container():
             yield postgres
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def test_database_url(postgres_container) -> str:
     """Получить URL тестовой базы данных"""
     return postgres_container.get_connection_url().replace("psycopg2", "asyncpg")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def apply_migrations(test_database_url: str) -> None:
     """Применить все миграции к тестовой БД"""
     # Устанавливаем URL для Alembic
@@ -120,8 +116,10 @@ async def database(
 ) -> AsyncGenerator[Database, None]:
     """Создать подключение к тестовой БД"""
     db = Database(test_database_url)
-    yield db
-    await db.disconnect()
+    try:
+        yield db
+    finally:
+        await db.disconnect()
 
 
 @pytest.fixture
@@ -151,11 +149,13 @@ async def clean_db_session(database: Database) -> AsyncGenerator[AsyncSession, N
 @pytest.fixture
 async def session_factory(
     test_database_url: str, apply_migrations: None
-) -> Callable[[], AsyncGenerator[AsyncSession, None]]:
+) -> AsyncGenerator[Callable[[], AsyncGenerator[AsyncSession, None]], None]:
     """Фабрика сессий для тестов"""
     db = Database(test_database_url)
-    yield db.get_session
-    await db.disconnect()
+    try:
+        yield db.get_session
+    finally:
+        await db.disconnect()
 
 
 @pytest.fixture
