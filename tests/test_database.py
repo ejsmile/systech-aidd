@@ -1,6 +1,8 @@
 """Тесты для database.py"""
 
 import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 
 from src.database import Database
 
@@ -53,13 +55,11 @@ async def test_database_get_session(test_database_url: str) -> None:
 @pytest.mark.asyncio
 async def test_database_get_session_rollback_on_error(test_database_url: str) -> None:
     """Тест rollback при ошибке в сессии"""
-    from sqlalchemy import text
-
     db = Database(test_database_url)
 
     # Пытаемся выполнить невалидный SQL, чтобы вызвать исключение
-    with pytest.raises(Exception):
-        async with db.get_session() as session:
+    with pytest.raises(DBAPIError):
+        async for session in db.get_session():
             # Специально вызываем ошибку внутри сессии
             # Это должно вызвать rollback в except блоке
             await session.execute(text("SELECT * FROM nonexistent_table"))

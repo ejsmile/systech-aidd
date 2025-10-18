@@ -82,7 +82,12 @@ async def handle_message(
         session = await session_gen.__anext__()
         try:
             user_repo = UserRepository(session)
-            await user_repo.upsert_user(**user_data.to_dict())
+            await user_repo.upsert_user(
+                user_id=user_data.user_id,
+                username=user_data.username,
+                first_name=user_data.first_name,
+                last_name=user_data.last_name,
+            )
             logger.debug(f"User data saved for user_id={user_data.user_id}")
         finally:
             await session_gen.aclose()

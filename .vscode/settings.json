@@ -45,5 +45,20 @@
     "**/.pytest_cache/**": true,
     "**/.mypy_cache/**": true,
     "**/.ruff_cache/**": true
-  }
+  },
+
+  "terminal.integrated.shellIntegration.enabled": true,
+    "terminal.integrated.profiles.osx": {
+        "zsh": {
+            "path": "/bin/zsh",
+            "args": ["-l"]
+        },
+        "bash": null
+    },
+    "terminal.integrated.automationProfile.osx": {
+        "path": "/bin/zsh",
+        "args": ["-l"]
+    },
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.gpuAcceleration": "off"
 }

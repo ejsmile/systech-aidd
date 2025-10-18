@@ -13,6 +13,8 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.0",
     "alembic>=1.13.0",
     "asyncpg>=0.29.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +26,7 @@ dev = [
     "pytest-cov>=5.0.0",
     "testcontainers>=4.0.0",
     "nest-asyncio>=1.6.0",
+    "httpx>=0.25.0",
 ]
 
 [tool.ruff]
@@ -33,6 +36,9 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C90", "PL"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["PLR2004"]  # Allow magic values in tests
 
 [tool.mypy]
 python_version = "3.11"

@@ -7,14 +7,21 @@ LLM-ассистент в виде Telegram-бота для взаимодейс
 ## 🚀 Быстрый старт
 
 ### Требования
+
+**Backend:**
 - **Python 3.11+** - требуемая версия
 - **[uv](https://github.com/astral-sh/uv)** - менеджер пакетов и виртуальных окружений
 - **Docker & Docker Compose** - для PostgreSQL
 - **Telegram Bot Token** - получить у [@BotFather](https://t.me/botfather)
 - **OpenRouter API Key** - получить на [openrouter.ai](https://openrouter.ai)
 
+**Frontend:**
+- **Node.js 18+** - для npm и запуска frontend
+- **npm** - менеджер пакетов (устанавливается с Node.js)
+
 ### Установка и запуск
 
+**Backend:**
 ```bash
 # 1. Клонировать и перейти в директорию
 git clone <repository-url>
@@ -31,8 +38,22 @@ cp sample.env .env
 make db-up          # запускает PostgreSQL в Docker
 make db-migrate     # применяет миграции
 
-# 5. Запустить бота
-make run        # или: make dev для DEBUG режима
+# 5. Запустить бота или API
+make run        # Telegram бот
+# или
+make run-api    # API сервер (http://localhost:8000)
+```
+
+**Frontend (опционально):**
+```bash
+# 1. Установить зависимости
+make frontend-install
+
+# 2. Настроить переменные окружения (создать frontend/.env)
+echo "VITE_API_BASE_URL=http://localhost:8000/api/v1" > frontend/.env
+
+# 3. Запустить dev сервер
+make frontend-dev   # откроется на http://localhost:5173
 ```
 
 ### Конфигурация
@@ -71,8 +92,22 @@ make run           # Запустить бота
 make dev           # Запустить в DEBUG режиме
 make restart       # Перезапустить бота
 
+# API для веб-интерфейса
+make run-api       # Запустить API сервер (http://localhost:8000)
+make test-api      # Запустить тесты API
+
+# Frontend (веб-интерфейс)
+make frontend-install  # Установить зависимости
+make frontend-dev      # Запустить dev сервер (http://localhost:5173)
+make frontend-build    # Собрать для продакшена
+make frontend-test     # Запустить тесты
+make frontend-lint     # Линтинг кода
+make frontend-format   # Форматирование кода
+
 # Качество кода
-make quality       # Полная проверка: format + lint + typecheck
+make quality       # Backend: format + lint + typecheck
+make frontend-quality  # Frontend: format + lint
+make quality-all   # Backend + Frontend: полная проверка качества
 make test          # Запустить все тесты
 make test-cov      # Тесты с отчетом покрытия
 
@@ -87,8 +122,8 @@ make clean         # Очистить временные файлы
 
 ```
 systech-aidd-my/
-├── src/                   # Исходный код (1 класс = 1 файл)
-│   ├── main.py           # Точка входа
+├── src/                   # Backend исходный код (1 класс = 1 файл)
+│   ├── main.py           # Точка входа для Telegram бота
 │   ├── bot.py            # Bot - aiogram wrapper
 │   ├── handlers.py       # Обработка сообщений и команд
 │   ├── llm_client.py     # LLMClient - работа с OpenRouter
@@ -98,30 +133,95 @@ systech-aidd-my/
 │   ├── database.py       # Database - управление подключением
 │   ├── db_models.py      # SQLAlchemy модели (Message, User)
 │   ├── models.py         # Модели данных (ChatMessage, UserData)
-│   └── config.py         # Config - конфигурация
+│   ├── config.py         # Config - конфигурация
+│   └── api/              # FastAPI веб-интерфейс
+│       ├── main.py       # Точка входа для API сервера
+│       ├── app.py        # FastAPI приложение и endpoints
+│       ├── models.py     # Pydantic модели для API
+│       ├── chat_handler.py       # WebChatHandler для чата
+│       ├── text2sql_handler.py   # Text2SQLHandler для SQL запросов
+│       ├── stat_collector.py     # Protocol для статистики
+│       └── mock_stat_collector.py # Mock реализация
+├── frontend/             # Frontend исходный код (React + TypeScript)
+│   ├── src/              # Исходный код приложения
+│   │   ├── components/   # Переиспользуемые компоненты
+│   │   │   ├── FloatingChat.tsx       # Обертка floating чата
+│   │   │   ├── FloatingChatButton.tsx # Кнопка чата в правом нижнем углу
+│   │   │   ├── FloatingChatWindow.tsx # Окно чата
+│   │   │   ├── ui/       # Shadcn/ui компоненты (button, card, chat-input, etc.)
+│   │   │   └── ...       # Другие компоненты (MetricCard, Charts, etc.)
+│   │   ├── pages/        # Страницы (Dashboard)
+│   │   ├── api/          # API клиент для backend
+│   │   ├── types/        # TypeScript типы
+│   │   ├── hooks/        # Custom React hooks (use-textarea-resize)
+│   │   ├── contexts/     # React Context (ThemeContext)
+│   │   └── lib/          # Утилиты
+│   ├── docs/             # Frontend документация
+│   ├── package.json      # Зависимости и скрипты
+│   └── vite.config.ts    # Конфигурация Vite
 ├── alembic/              # Миграции базы данных
-├── tests/                # Автоматизированные тесты (78 тестов, coverage 86%)
-├── docs/                 # Документация
+├── tests/                # Автоматизированные тесты (105 тестов, coverage >85%)
+├── docs/                 # Общая документация
+│   ├── api/              # API документация
+│   └── frontend/         # Frontend требования
 ├── docker-compose.yml    # PostgreSQL для разработки (настройки подключения)
 ├── Dockerfile.migrations # Docker для автоматических миграций
 ├── Makefile             # Команды разработки
-└── pyproject.toml       # Конфигурация проекта
+└── pyproject.toml       # Конфигурация backend
 ```
 
 Детальное описание архитектуры см. в [docs/vision.md](docs/vision.md)
 
 ## 🛠 Технологии
 
+### Backend
 - **Python 3.11+** с async/await
 - **aiogram 3.x** - Telegram Bot API
+- **FastAPI** - REST API для веб-интерфейса
 - **OpenRouter** - доступ к LLM моделям
 - **PostgreSQL 16** - персистентное хранение истории
 - **SQLAlchemy 2.x (async)** - ORM для работы с БД
 - **Alembic** - миграции базы данных
+
+### Frontend
+- **React 18** - UI библиотека
+- **TypeScript 5** - type safety
+- **Vite** - быстрая сборка и dev сервер
+- **Tailwind CSS** - utility-first стилизация
+- **Shadcn/ui** - современные UI компоненты
+- **Recharts** - декларативные графики
+- **React Router** - клиентский роутинг
+
+**Возможности:**
+- **Floating AI Chat** - глобальный чат-помощник в правом нижнем углу
+  - Два режима: обычный (LLM) и админ (Text2SQL)
+  - Badge индикатор режима (AI/SQL)
+  - Адаптивный дизайн (desktop: floating окно, mobile: full screen)
+  - История диалогов с автоскроллом
+- **Dashboard Analytics** - визуализация статистики использования бота
+- **Dark/Light Theme** - поддержка темной и светлой темы
+- **Period Filtering** - фильтрация статистики по периодам
+
+### Infrastructure
 - **Docker Compose** - локальная инфраструктура
-- **uv** - управление зависимостями
-- **ruff + mypy + pytest** - качество кода
-- **testcontainers** - изолированные тесты
+- **uv** - управление зависимостями (backend)
+- **npm** - управление зависимостями (frontend)
+- **uvicorn** - ASGI сервер для FastAPI
+
+### Quality & Testing
+**Backend:**
+- **ruff** - линтинг и форматирование
+- **mypy (strict mode)** - проверка типов
+- **pytest + pytest-asyncio** - тестирование
+- **testcontainers** - изолированные тесты с реальной БД
+- **Coverage >85%** - 105 тестов
+
+**Frontend:**
+- **ESLint** - линтинг JavaScript/TypeScript
+- **Prettier** - форматирование кода
+- **TypeScript strict mode** - проверка типов
+- **Vitest** - unit тестирование
+- **React Testing Library** - тестирование компонентов
 
 Полный стек см. в [docs/vision.md](docs/vision.md)
 
@@ -131,7 +231,7 @@ systech-aidd-my/
 - **1 класс = 1 файл** - четкая структура
 - **Type hints везде** - mypy strict mode
 - **Async/await** - асинхронность по умолчанию
-- **Coverage >80%** - качественное тестирование (текущий: 86%, 78 тестов)
+- **Coverage >85%** - качественное тестирование (105 тестов, API coverage 93%)
 - **Testcontainers** - изолированные тесты с реальной БД
 
 Подробные правила см. в [.cursor/rules/conventions.mdc](.cursor/rules/conventions.mdc)
@@ -139,18 +239,45 @@ systech-aidd-my/
 ## ✅ Контроль качества
 
 ```bash
-make quality    # format + lint + typecheck
-make test-cov   # тесты с coverage отчетом
+# Backend
+make quality       # format + lint + typecheck
+
+# Frontend
+make frontend-quality  # format + lint
+
+# Всё вместе
+make quality-all   # Backend + Frontend полная проверка
+
+# Тестирование
+make test          # Backend тесты
+make test-cov      # Backend тесты с coverage отчетом
+make frontend-test # Frontend тесты
+
+# Полная проверка перед коммитом
+make quality-all && make test && make frontend-test
 ```
 
 Workflow разработки см. в [.cursor/rules/workflow.mdc](.cursor/rules/workflow.mdc)
 
 ## 📚 Документация
 
+### Основная
 - **[docs/idea.md](docs/idea.md)** - концепция проекта
 - **[docs/vision.md](docs/vision.md)** - техническое видение и архитектура
 - **[docs/roadmap.md](docs/roadmap.md)** - роадмап и спринты проекта
 - **[docs/database_schema.md](docs/database_schema.md)** - схема базы данных (таблицы, индексы, связи)
+
+### API для веб-интерфейса
+- **[docs/api/api-contract.md](docs/api/api-contract.md)** - API контракт и endpoints
+- **[docs/frontend/dashboard-requirements.md](docs/frontend/dashboard-requirements.md)** - требования к дашборду
+- **http://localhost:8000/docs** - интерактивная OpenAPI документация (после `make run-api`)
+
+### Frontend
+- **[frontend/docs/front-vision.md](frontend/docs/front-vision.md)** - видение frontend приложения
+- **[frontend/docs/tech-stack.md](frontend/docs/tech-stack.md)** - технологический стек frontend
+- **http://localhost:5173** - dev сервер (после `make frontend-dev`)
+
+### Разработка
 - **[docker-compose.yml](docker-compose.yml)** - настройки PostgreSQL (user, password, db, port)
 - **[.cursor/rules/conventions.mdc](.cursor/rules/conventions.mdc)** - правила разработки
 - **[.cursor/rules/workflow.mdc](.cursor/rules/workflow.mdc)** - workflow разработки
