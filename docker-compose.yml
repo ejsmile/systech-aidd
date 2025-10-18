@@ -30,6 +30,51 @@ services:
       - .:/app
     working_dir: /app
 
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: systech-aidd-bot
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    command: uv run python -m src.main
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: systech-aidd-api
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+    ports:
+      - "8000:8000"
+    command: uv run python -m src.api.main
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: systech-aidd-frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    # volumes:
+    #   - ./frontend/src:/app/src  # Отключено для стабильной работы в Docker
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 
