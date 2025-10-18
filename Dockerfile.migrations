@@ -6,7 +6,7 @@ WORKDIR /app
 RUN pip install uv
 
 # Копирование файлов проекта
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY src ./src

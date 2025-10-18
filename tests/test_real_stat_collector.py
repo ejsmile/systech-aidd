@@ -1,6 +1,6 @@
 """Тесты для RealStatCollector."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -340,7 +340,7 @@ async def test_real_stat_collector_with_timezone_aware_datetime(
     Проверяет что RealStatCollector корректно работает с datetime,
     которые содержат timezone info (как это происходит в FastAPI).
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Создаем пользователя
     user = User(user_id=8001, username="user", first_name="User")

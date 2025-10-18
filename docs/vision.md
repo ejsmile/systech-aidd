@@ -54,6 +54,37 @@
 - **Docker Compose** - запуск PostgreSQL локально (настройки в `docker-compose.yml`)
 - **testcontainers** - изоляция тестов с реальной БД
 
+#### Важно: Параметры подключения к PostgreSQL
+
+**Настройки в docker-compose.yml (SINGLE SOURCE OF TRUTH):**
+```yaml
+environment:
+  POSTGRES_USER: aidd_user
+  POSTGRES_PASSWORD: aidd_password
+  POSTGRES_DB: aidd_db
+ports:
+  - "5433:5432"  # Внешний порт 5433, внутри контейнера 5432
+```
+
+**URL подключения для локальной разработки:**
+```bash
+# В .env файле:
+DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
+#                                  ^^^^       ^^^^^        ^^^^^^^^      ^^^^
+#                                  user     password        host:port   database
+```
+
+**Для миграций через Docker (Dockerfile.migrations):**
+- Используется тот же образ PostgreSQL из docker-compose.yml
+- Миграции применяются автоматически при запуске через `docker compose run --rm migrations`
+- URL внутри Docker: `postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db` (хост `postgres`, внутренний порт)
+
+**Важные файлы:**
+- `docker-compose.yml` - основные настройки PostgreSQL (user, password, db, port)
+- `Dockerfile.migrations` - Docker образ для миграций (включает README.md для сборки)
+- `alembic.ini` - конфигурация Alembic (sqlalchemy.url берется из DATABASE_URL)
+- `pyproject.toml` - зависимости включают `nest-asyncio` (требуется для alembic/env.py)
+
 ## 2. Принцип разработки
 
 ### Основные принципы
@@ -590,7 +621,8 @@ TELEGRAM_TOKEN=your_telegram_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
 # База данных
-# Параметры подключения (user, password, db, port) смотри в docker-compose.yml
+# ВАЖНО: Параметры (user, password, db, port) настраиваются в docker-compose.yml
+# Формат: postgresql+asyncpg://user:password@host:port/database
 DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
 
 # Необязательные (с значениями по умолчанию)
@@ -602,12 +634,12 @@ TEMPERATURE=0.7
 LOG_LEVEL=INFO
 ```
 
-**Важно:** Параметры подключения к PostgreSQL (user, password, database, port) настраиваются в `docker-compose.yml`. 
-По умолчанию:
-- User: `aidd_user`
-- Password: `aidd_password`
-- Database: `aidd_db`
-- Port: `5433` (внешний), `5432` (внутри контейнера)
+**Важно про PostgreSQL:** 
+- Все параметры подключения (user, password, database, port) настраиваются в `docker-compose.yml`
+- `docker-compose.yml` - ЕДИНСТВЕННЫЙ источник правды (single source of truth)
+- По умолчанию: User `aidd_user`, Password `aidd_password`, Database `aidd_db`
+- Порты: `5433` (внешний для localhost), `5432` (внутри контейнера)
+- Для миграций в Docker: хост `postgres` вместо `localhost`
 
 ### Валидация конфигурации
 - Загрузка через `pydantic_settings.BaseSettings` (Pydantic v2)
@@ -779,9 +811,10 @@ make quality-all && make test && make frontend-test
 2. Установить зависимости: `uv pip install -e ".[dev]"` или `make install-dev`
 3. Настроить `.env` файл:
    - Обязательные: `TELEGRAM_TOKEN`, `OPENROUTER_API_KEY`
-   - `DATABASE_URL` - параметры подключения смотри в `docker-compose.yml`
+   - `DATABASE_URL` - **ВАЖНО: параметры должны совпадать с docker-compose.yml**
+   - Пример: `postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db`
 4. Запустить PostgreSQL: `make db-up` (использует настройки из `docker-compose.yml`)
-5. Применить миграции: `make db-migrate`
+5. Применить миграции: `make db-migrate` или `docker compose run --rm migrations`
 6. Запустить бота: `make run` (или API: `make run-api`)
 
 **Frontend:**
@@ -790,9 +823,12 @@ make quality-all && make test && make frontend-test
    - `VITE_API_BASE_URL=http://localhost:8000/api/v1`
 3. Запустить dev сервер: `make frontend-dev` (откроется на http://localhost:5173)
 
-**Примечание:** 
+**Примечания про PostgreSQL:** 
 - PostgreSQL запускается в Docker контейнере с настройками из `docker-compose.yml`
+- **docker-compose.yml - единственный источник правды** для параметров подключения
+- По умолчанию: `aidd_user:aidd_password@localhost:5433/aidd_db`
 - Убедитесь, что порты 5433 (PostgreSQL), 8000 (API), 5173 (Frontend) свободны
+- Миграции применяются автоматически при `make db-up` через сервис `migrations`
 
 ### Команды Makefile
 
@@ -816,7 +852,12 @@ make quality-all && make test && make frontend-test
 - `make db-revision` - создать новую миграцию (m="description")
 - `make db-reset` - полный сброс БД и повторное применение миграций
 
-**Примечание:** Все параметры подключения к PostgreSQL (user, password, database, port) настраиваются в `docker-compose.yml`.
+**Примечание про PostgreSQL:**
+- Все параметры подключения (user, password, database, port) настраиваются в `docker-compose.yml`
+- Для применения миграций в Docker используется: `docker compose run --rm migrations`
+- Миграции автоматически применяются при старте через сервис `migrations` в docker-compose.yml
+- Важно: `Dockerfile.migrations` должен включать `README.md` для успешной сборки (требование hatchling)
+- Важно: `pyproject.toml` должен включать `nest-asyncio` в основных зависимостях (требуется для alembic/env.py)
 
 **Качество кода:**
 - `make quality` - Backend: format + lint + typecheck
@@ -840,6 +881,87 @@ make quality-all && make test && make frontend-test
 Для детального логирования установить `LOG_LEVEL=DEBUG` в `.env` или через переменную окружения.
 
 ⚠️ **Важно:** DEBUG режим логирует содержимое сообщений - не используйте в продакшене!
+
+---
+
+## 12. Частые проблемы и решения
+
+### PostgreSQL: подключение и миграции
+
+#### Проблема: "relation does not exist" или миграции не применены
+**Причина:** Миграции применяются к БД в Docker контейнере, но не к локальной БД (или наоборот).
+
+**Решение:**
+1. Проверьте, что используете правильный DATABASE_URL:
+   ```bash
+   # Для локального доступа (из хоста):
+   DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
+   
+   # Для Docker контейнера:
+   DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@postgres:5432/aidd_db
+   ```
+2. Примените миграции к нужной БД:
+   ```bash
+   # К Docker БД:
+   docker compose run --rm migrations
+   
+   # К локальной БД (если DATABASE_URL правильный):
+   uv run alembic upgrade head
+   ```
+
+#### Проблема: "ModuleNotFoundError: No module named 'nest_asyncio'"
+**Причина:** `nest-asyncio` находится в dev-зависимостях, но требуется для `alembic/env.py`.
+
+**Решение:** Переместить `nest-asyncio` в основные зависимости в `pyproject.toml`:
+```toml
+dependencies = [
+    # ... другие зависимости
+    "nest-asyncio>=1.6.0",  # Требуется для alembic/env.py
+]
+```
+
+#### Проблема: Docker сборка миграций падает с "OSError: Readme file does not exist"
+**Причина:** `hatchling` (build backend) требует `README.md` для сборки пакета.
+
+**Решение:** Добавить `README.md` в `Dockerfile.migrations`:
+```dockerfile
+COPY pyproject.toml uv.lock README.md ./
+```
+
+#### Проблема: Параметры подключения не совпадают
+**Причина:** Забыли синхронизировать настройки между `.env` и `docker-compose.yml`.
+
+**Решение:** **ВСЕГДА** используйте `docker-compose.yml` как единственный источник правды:
+1. Проверьте настройки в `docker-compose.yml`:
+   ```yaml
+   environment:
+     POSTGRES_USER: aidd_user
+     POSTGRES_PASSWORD: aidd_password
+     POSTGRES_DB: aidd_db
+   ports:
+     - "5433:5432"
+   ```
+2. Синхронизируйте `.env`:
+   ```bash
+   DATABASE_URL=postgresql+asyncpg://aidd_user:aidd_password@localhost:5433/aidd_db
+   #                                  ^^^^       ^^^^^        ^^^^^^^^      ^^^^
+   #                              должны совпадать с docker-compose.yml!
+   ```
+
+#### Проблема: Миграции создаются, но не применяются автоматически
+**Причина:** Сервис `migrations` в `docker-compose.yml` запускается только вручную.
+
+**Решение:**
+```bash
+# После создания новой миграции:
+uv run alembic revision -m "описание"
+
+# Применить к Docker БД:
+docker compose run --rm migrations
+
+# Или применить локально:
+uv run alembic upgrade head
+```
 
 ---
 
