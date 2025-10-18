@@ -7,6 +7,12 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   server: {
+    host: true,
+    allowedHosts: [
+      'aitest.karasov.net',
+      'localhost',
+      '.localhost'
+    ],
     fs: {
       strict: false,
       allow: ['..']
