@@ -16,8 +16,33 @@ from src.config import Config
 from src.conversation import ConversationManager
 from src.database import Database
 
-# Отключаем Reaper для testcontainers (проблема на macOS)
-os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
+# ============================================================================
+# Настройка переменных окружения для тестов
+# ============================================================================
+# ВАЖНО: Эти env vars должны быть установлены ДО импорта src.api.app
+# т.к. app.py создает Config() на module level (строка 52)
+#
+# Эти значения используются ТОЛЬКО для инициализации Config.
+# Реальные API вызовы мокаются в тестах через @patch
+
+def setup_test_environment() -> None:
+    """Установить переменные окружения для тестов."""
+    test_env = {
+        "TELEGRAM_TOKEN": "test_token_for_tests",
+        "OPENROUTER_API_KEY": "test_api_key_for_tests",
+        "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
+        "TESTCONTAINERS_RYUK_DISABLED": "true",
+        "LOG_LEVEL": "WARNING",
+    }
+    
+    for key, value in test_env.items():
+        # Не перезаписываем если уже установлено (например, из CI)
+        if key not in os.environ:
+            os.environ[key] = value
+
+
+# Вызываем setup при импорте conftest.py (до импорта app)
+setup_test_environment()
 
 
 class ConfigForTests(Config):
@@ -52,9 +77,21 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 def postgres_container():
-    """Создать PostgreSQL контейнер для тестов"""
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        yield postgres
+    """Создать PostgreSQL контейнер для тестов или использовать внешний"""
+    # Проверяем, запущены ли мы в Docker с внешним PostgreSQL
+    use_external_postgres = os.getenv("USE_EXTERNAL_POSTGRES", "false").lower() == "true"
+    
+    if use_external_postgres:
+        # Используем внешний PostgreSQL из docker-compose
+        class ExternalPostgres:
+            def get_connection_url(self):
+                return "postgresql+psycopg2://test_user:test_password@test-postgres:5432/test_db"
+        
+        yield ExternalPostgres()
+    else:
+        # Используем testcontainers (локально)
+        with PostgresContainer("postgres:16-alpine") as postgres:
+            yield postgres
 
 
 @pytest.fixture(scope="session")
